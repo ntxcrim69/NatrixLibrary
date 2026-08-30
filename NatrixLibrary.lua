@@ -692,9 +692,9 @@ function Library:CreateWindow(config)
         end
     end)
 
-    -- 5. Key System Overlay
+    -- 5. Key System Overlay (Converted to Frame to fix unsupported CanvasGroup render issues)
     if useKeySystem then
-        local keyModal = Instance.new("CanvasGroup")
+        local keyModal = Instance.new("Frame")
         keyModal.Name = "KeyModal"
         keyModal.Size = UDim2.new(0, 440, 0, 320)
         keyModal.Position = UDim2.new(0.5, -220, 0.5, -160)
@@ -791,7 +791,7 @@ function Library:CreateWindow(config)
             end
 
             if verified then
-                local outTween = TweenService:Create(keyModal, TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -220, 0.45, -160), GroupTransparency = 1})
+                local outTween = TweenService:Create(keyModal, TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -220, 0.45, -160)})
                 outTween:Play()
                 outTween.Completed:Wait()
                 keyModal:Destroy()
