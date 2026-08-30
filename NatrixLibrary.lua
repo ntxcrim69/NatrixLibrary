@@ -1,6 +1,6 @@
 --[[
     Premium Roblox UI Library Wrapper - "Natrix Pro"
-    Advanced modern GUI with customizable menu toggle keybind, settings overlay menu, and flush top-middle HUD FPS/Ping display.
+    Advanced modern GUI with customizable menu toggle keybind, settings overlay menu, and a draggable top HUD FPS/Ping display.
 ]]
 
 local Library = {}
@@ -121,7 +121,7 @@ function Library:CreateWindow(config)
         end
     end)
 
-    -- Top Middle Flush HUD Overlay (Shifted up with a negative offset to completely eliminate the top gap)
+    -- Top Middle Flush HUD Overlay (Draggable & Shifted Up)
     local topMiddleHud = Instance.new("Frame")
     topMiddleHud.Name = "TopMiddleHud"
     topMiddleHud.Size = UDim2.new(0, 210, 0, 32)
@@ -132,6 +132,28 @@ function Library:CreateWindow(config)
     topMiddleHud.Parent = screenGui
     createCorner(topMiddleHud, 6)
     createStroke(topMiddleHud, Theme.Stroke)
+
+    -- Draggable Logic for TopMiddleHud
+    local hudDragging, hudDragInput, hudDragStart, hudStartPos
+    topMiddleHud.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            hudDragging = true
+            hudDragStart = input.Position
+            hudStartPos = topMiddleHud.AbsolutePosition
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then hudDragging = false end end)
+        end
+    end)
+    topMiddleHud.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then hudDragInput = input end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == hudDragInput and hudDragging then
+            local delta = input.Position - hudDragStart
+            local newX = hudStartPos.X + delta.X
+            local newY = hudStartPos.Y + delta.Y
+            topMiddleHud.Position = UDim2.new(0, newX, 0, newY)
+        end
+    end)
 
     local hudFps = Instance.new("TextLabel")
     hudFps.Size = UDim2.new(0.5, 0, 1, 0)
