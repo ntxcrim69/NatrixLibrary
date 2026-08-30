@@ -15,6 +15,8 @@ local RunService = game:GetService("RunService")
 local Stats = game:GetService("Stats")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
 -- Design System Constants
 local Theme = {
@@ -92,7 +94,7 @@ function Library:CreateWindow(config)
     local parentObj = (gethui and gethui()) or (syn and syn.protect_gui and CoreGui) or CoreGui
     pcall(function() screenGui.Parent = parentObj end)
     if not screenGui.Parent then
-        screenGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+        screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
     end
 
     local windowObj = {
@@ -121,11 +123,11 @@ function Library:CreateWindow(config)
         end
     end)
 
-    -- Top Middle Flush HUD Overlay (Draggable & Shifted Up)
+    -- Top Middle Flush HUD Overlay (Draggable with Icons & Accurate Stats)
     local topMiddleHud = Instance.new("Frame")
     topMiddleHud.Name = "TopMiddleHud"
-    topMiddleHud.Size = UDim2.new(0, 210, 0, 32)
-    topMiddleHud.Position = UDim2.new(0.5, -105, 0, 10)
+    topMiddleHud.Size = UDim2.new(0, 220, 0, 32)
+    topMiddleHud.Position = UDim2.new(0.5, -110, 0, 10)
     topMiddleHud.BackgroundColor3 = Theme.Surface
     topMiddleHud.Visible = false
     topMiddleHud.ZIndex = 10
@@ -155,13 +157,23 @@ function Library:CreateWindow(config)
         end
     end)
 
+    -- Top HUD FPS Section
+    local hudFpsIcon = Instance.new("ImageLabel")
+    hudFpsIcon.Size = UDim2.new(0, 16, 0, 16)
+    hudFpsIcon.Position = UDim2.new(0, 8, 0.5, -8)
+    hudFpsIcon.BackgroundTransparency = 1
+    hudFpsIcon.Image = FetchExternalImage("https://github.com/ntxcrim69/NatrixLibrary/blob/main/speed.png?raw=true", "speed_hud.png")
+    hudFpsIcon.ZIndex = 11
+    hudFpsIcon.Parent = topMiddleHud
+
     local hudFps = Instance.new("TextLabel")
-    hudFps.Size = UDim2.new(0.5, 0, 1, 0)
-    hudFps.Position = UDim2.new(0, 0, 0, 0)
+    hudFps.Size = UDim2.new(0.5, -28, 1, 0)
+    hudFps.Position = UDim2.new(0, 28, 0, 0)
     hudFps.BackgroundTransparency = 1
     hudFps.TextColor3 = Theme.SubText
     hudFps.Font = Enum.Font.GothamMedium
     hudFps.TextSize = 12
+    hudFps.TextXAlignment = Enum.TextXAlignment.Left
     hudFps.Text = "FPS: --"
     hudFps.ZIndex = 11
     hudFps.Parent = topMiddleHud
@@ -174,13 +186,23 @@ function Library:CreateWindow(config)
     hudDivider.ZIndex = 11
     hudDivider.Parent = topMiddleHud
 
+    -- Top HUD Ping Section
+    local hudPingIcon = Instance.new("ImageLabel")
+    hudPingIcon.Size = UDim2.new(0, 16, 0, 16)
+    hudPingIcon.Position = UDim2.new(0.5, 10, 0.5, -8)
+    hudPingIcon.BackgroundTransparency = 1
+    hudPingIcon.Image = FetchExternalImage("https://github.com/ntxcrim69/NatrixLibrary/blob/main/network.png?raw=true", "network_hud.png")
+    hudPingIcon.ZIndex = 11
+    hudPingIcon.Parent = topMiddleHud
+
     local hudPing = Instance.new("TextLabel")
-    hudPing.Size = UDim2.new(0.5, 0, 1, 0)
-    hudPing.Position = UDim2.new(0.5, 0, 0, 0)
+    hudPing.Size = UDim2.new(0.5, -30, 1, 0)
+    hudPing.Position = UDim2.new(0.5, 30, 0, 0)
     hudPing.BackgroundTransparency = 1
     hudPing.TextColor3 = Theme.SubText
     hudPing.Font = Enum.Font.GothamMedium
     hudPing.TextSize = 12
+    hudPing.TextXAlignment = Enum.TextXAlignment.Left
     hudPing.Text = "PING: --"
     hudPing.ZIndex = 11
     hudPing.Parent = topMiddleHud
@@ -469,24 +491,32 @@ function Library:CreateWindow(config)
         settingsMenu.Visible = not settingsMenu.Visible
     end)
 
-    -- Live Stats Logic Loops
+    -- Live Stats Logic Loops (Accurate Delta-Time FPS & Network Ping Calculation)
     local frameCount = 0
-    local lastTick = tick()
-    RunService.RenderStepped:Connect(function()
+    local fpsAccumulator = 0
+    RunService.RenderStepped:Connect(function(dt)
         frameCount = frameCount + 1
-        if tick() - lastTick >= 1 then
-            local currentFPS = tostring(frameCount)
+        fpsAccumulator = fpsAccumulator + dt
+        if fpsAccumulator >= 0.5 then
+            local currentFPS = tostring(math.floor(frameCount / fpsAccumulator + 0.5))
             fpsLabel.Text = "FPS: " .. currentFPS
             hudFps.Text = "FPS: " .. currentFPS
             frameCount = 0
-            lastTick = tick()
+            fpsAccumulator = 0
         end
     end)
 
     task.spawn(function()
         while task.wait(1) do
-            local success, pingVal = pcall(function() return math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue()) end)
-            if success then
+            local success, pingVal = pcall(function()
+                return math.floor((LocalPlayer:GetNetworkPing() * 1000) + 0.5)
+            end)
+            if not success or not pingVal then
+                pcall(function()
+                    pingVal = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+                end)
+            end
+            if success and pingVal then
                 local currentPing = tostring(pingVal)
                 pingLabel.Text = "PING: " .. currentPing
                 hudPing.Text = "PING: " .. currentPing
