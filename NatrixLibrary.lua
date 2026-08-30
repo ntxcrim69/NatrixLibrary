@@ -1,6 +1,6 @@
 --[[
     Premium Roblox UI Library Wrapper - "Natrix Pro"
-    Advanced modern GUI with strokes, dynamic easing, gap layouts, and web assets.
+    Advanced modern GUI with single scroll layout and text-based icons.
 ]]
 
 local Library = {}
@@ -239,19 +239,21 @@ function Library:CreateWindow(config)
     local fpsLabel = createStatusTag(bottomBar, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/speed.png?raw=true", "FPS", 0, 105)
     local pingLabel = createStatusTag(bottomBar, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/network.png?raw=true", "PING", 113, 115)
 
-    -- Settings Gear Icon (Updated to clean material design icon)
-    local settingsBtn = Instance.new("ImageButton")
+    -- Settings Gear Icon (Reverted to text/emoji version)
+    local settingsBtn = Instance.new("TextButton")
     settingsBtn.Size = UDim2.new(0, 32, 0, 32)
     settingsBtn.Position = UDim2.new(1, -32, 0.5, -16)
     settingsBtn.BackgroundColor3 = Theme.Surface
-    settingsBtn.Image = FetchExternalImage("https://raw.githubusercontent.com/google/material-design-icons/master/png/action/settings/materialicons/48dp/2x/baseline_settings_white_48dp.png", "NatrixSettings.png")
-    settingsBtn.ImageColor3 = Theme.SubText
+    settingsBtn.Text = "⚙"
+    settingsBtn.TextColor3 = Theme.SubText
+    settingsBtn.Font = Enum.Font.GothamBold
+    settingsBtn.TextSize = 18
     settingsBtn.Parent = bottomBar
     createCorner(settingsBtn, 6)
     createStroke(settingsBtn, Theme.Stroke)
 
-    settingsBtn.MouseEnter:Connect(function() animate(settingsBtn, {BackgroundColor3 = Theme.SurfaceElevated, ImageColor3 = Theme.Accent}) end)
-    settingsBtn.MouseLeave:Connect(function() animate(settingsBtn, {BackgroundColor3 = Theme.Surface, ImageColor3 = Theme.SubText}) end)
+    settingsBtn.MouseEnter:Connect(function() animate(settingsBtn, {BackgroundColor3 = Theme.SurfaceElevated, TextColor3 = Theme.Accent}) end)
+    settingsBtn.MouseLeave:Connect(function() animate(settingsBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Theme.SubText}) end)
 
     -- Live Stats Logic Loops
     local frameCount = 0
@@ -276,7 +278,6 @@ function Library:CreateWindow(config)
 
     -- 4. Key System Overlay
     if useKeySystem then
-        -- Key System uses a CanvasGroup to support smooth fading out
         local keyModal = Instance.new("CanvasGroup")
         keyModal.Name = "KeyModal"
         keyModal.Size = UDim2.new(0, 440, 0, 320)
@@ -416,44 +417,32 @@ function Library:CreateTab(tabName)
     pageFrame.Visible = false
     pageFrame.Parent = window.PageHolder
 
-    local leftColumn = Instance.new("ScrollingFrame")
-    leftColumn.Name = "LeftColumn"
-    leftColumn.Size = UDim2.new(0.49, -4, 1, 0)
-    leftColumn.Position = UDim2.new(0, 8, 0, 8)
-    leftColumn.Size = UDim2.new(0.5, -12, 1, -16)
-    leftColumn.BackgroundTransparency = 1
-    leftColumn.BorderSizePixel = 0
-    leftColumn.ScrollBarThickness = 2
-    leftColumn.ScrollBarImageColor3 = Theme.Stroke
-    leftColumn.Parent = pageFrame
-    createPadding(leftColumn, 2, 2, 2, 2)
+    -- Unified Single Column Layout (Fixes the middle scrollbar issue)
+    local container = Instance.new("ScrollingFrame")
+    container.Name = "Container"
+    container.Size = UDim2.new(1, -16, 1, -16)
+    container.Position = UDim2.new(0, 8, 0, 8)
+    container.BackgroundTransparency = 1
+    container.BorderSizePixel = 0
+    container.ScrollBarThickness = 2
+    container.ScrollBarImageColor3 = Theme.Stroke
+    container.Parent = pageFrame
+    createPadding(container, 2, 2, 2, 2)
 
-    local leftLayout = Instance.new("UIListLayout")
-    leftLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    leftLayout.Padding = UDim.new(0, 6)
-    leftLayout.Parent = leftColumn
+    local layout = Instance.new("UIListLayout")
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 6)
+    layout.Parent = container
 
-    local rightColumn = Instance.new("ScrollingFrame")
-    rightColumn.Name = "RightColumn"
-    rightColumn.Size = UDim2.new(0.5, -12, 1, -16)
-    rightColumn.Position = UDim2.new(0.5, 4, 0, 8)
-    rightColumn.BackgroundTransparency = 1
-    rightColumn.BorderSizePixel = 0
-    rightColumn.ScrollBarThickness = 2
-    rightColumn.ScrollBarImageColor3 = Theme.Stroke
-    rightColumn.Parent = pageFrame
-    createPadding(rightColumn, 2, 2, 2, 2)
-    
-    local rightLayout = Instance.new("UIListLayout")
-    rightLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    rightLayout.Padding = UDim.new(0, 6)
-    rightLayout.Parent = rightColumn
+    -- Auto-resize canvas logic to ensure scrolling works as elements are added
+    layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        container.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
+    end)
 
     local tabObj = {
         Button = tabBtn,
         Page = pageFrame,
-        LeftColumn = leftColumn,
-        RightColumn = rightColumn
+        Container = container 
     }
     setmetatable(tabObj, Tab)
     table.insert(window.Tabs, tabObj)
@@ -482,7 +471,7 @@ function Tab:CreateToggle(label, defaultState, callback)
     local toggleFrame = Instance.new("Frame")
     toggleFrame.Size = UDim2.new(1, 0, 0, 42)
     toggleFrame.BackgroundColor3 = Theme.Surface
-    toggleFrame.Parent = self.LeftColumn
+    toggleFrame.Parent = self.Container
     createCorner(toggleFrame, 6)
     createStroke(toggleFrame, Theme.Stroke)
     createPadding(toggleFrame, 0, 0, 4, 12)
@@ -538,7 +527,7 @@ function Tab:CreateKeybindButton(label, defaultKey, callback)
     local containerFrame = Instance.new("Frame")
     containerFrame.Size = UDim2.new(1, 0, 0, 42)
     containerFrame.BackgroundColor3 = Theme.Surface
-    containerFrame.Parent = self.LeftColumn
+    containerFrame.Parent = self.Container
     createCorner(containerFrame, 6)
     createStroke(containerFrame, Theme.Stroke)
     createPadding(containerFrame, 0, 0, 4, 12)
@@ -611,7 +600,7 @@ function Tab:CreateSlider(label, min, max, defaultVal, callback)
     local sliderFrame = Instance.new("Frame")
     sliderFrame.Size = UDim2.new(1, 0, 0, 46)
     sliderFrame.BackgroundColor3 = Theme.Surface
-    sliderFrame.Parent = self.LeftColumn
+    sliderFrame.Parent = self.Container
     createCorner(sliderFrame, 6)
     createStroke(sliderFrame, Theme.Stroke)
     createPadding(sliderFrame, 0, 0, 4, 12)
