@@ -183,10 +183,10 @@ function Library:CreateWindow(config)
     outerContainer.Parent = screenGui
 
     -- Configurable Menu Toggle Key (Loaded from Config)
-    local currentToggleKey = Enum.KeyCode[Config.ToggleKey] or Enum.KeyCode.RightShift
+    local currentToggleKey = (Config.ToggleKey ~= "" and Enum.KeyCode[Config.ToggleKey]) or nil
 
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if input.KeyCode == currentToggleKey then
+        if currentToggleKey and input.KeyCode == currentToggleKey then
             outerContainer.Visible = not outerContainer.Visible
         end
     end)
@@ -420,7 +420,7 @@ function Library:CreateWindow(config)
     skBtn.Size = UDim2.new(0, 65, 0, 24)
     skBtn.Position = UDim2.new(1, -65, 0.5, -12)
     skBtn.BackgroundColor3 = Theme.Background
-    skBtn.Text = currentToggleKey.Name
+    skBtn.Text = currentToggleKey and currentToggleKey.Name or "..."
     skBtn.TextColor3 = Theme.SubText
     skBtn.Font = Enum.Font.Gotham
     skBtn.TextSize = 11
@@ -437,12 +437,21 @@ function Library:CreateWindow(config)
         local connection
         connection = UserInputService.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.Keyboard then
-                currentToggleKey = input.KeyCode
-                Config.ToggleKey = currentToggleKey.Name
-                skBtn.Text = currentToggleKey.Name
-                skBinding = false
-                SaveConfig()
-                connection:Disconnect()
+                if input.KeyCode == Enum.KeyCode.Escape then
+                    currentToggleKey = nil
+                    Config.ToggleKey = ""
+                    skBtn.Text = "..."
+                    skBinding = false
+                    SaveConfig()
+                    connection:Disconnect()
+                else
+                    currentToggleKey = input.KeyCode
+                    Config.ToggleKey = currentToggleKey.Name
+                    skBtn.Text = currentToggleKey.Name
+                    skBinding = false
+                    SaveConfig()
+                    connection:Disconnect()
+                end
             end
         end)
     end)
@@ -500,13 +509,13 @@ function Library:CreateWindow(config)
     local fpsLabel = createStatusTag(fpsWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/speed.png", "FPS_icon.png", "FPS", 0, 105)
     local pingLabel = createStatusTag(pingWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/network.png", "PING_icon.png", "PING", 0, 115)
 
-    -- Settings Gear Button
+    -- Settings Gear Button (Updated to match Theme.Accent / white design)
     local settingsBtn = Instance.new("TextButton")
     settingsBtn.Size = UDim2.new(0, 32, 0, 32)
     settingsBtn.Position = UDim2.new(1, -32, 0.5, -16)
     settingsBtn.BackgroundColor3 = Theme.Surface
     settingsBtn.Text = "⚙"
-    settingsBtn.TextColor3 = Theme.SubText
+    settingsBtn.TextColor3 = Theme.Accent
     settingsBtn.Font = Enum.Font.GothamBold
     settingsBtn.TextSize = 18
     settingsBtn.ZIndex = 3
@@ -515,7 +524,7 @@ function Library:CreateWindow(config)
     createStroke(settingsBtn, Theme.Stroke)
 
     settingsBtn.MouseEnter:Connect(function() animate(settingsBtn, {BackgroundColor3 = Theme.SurfaceElevated, TextColor3 = Theme.Accent}) end)
-    settingsBtn.MouseLeave:Connect(function() animate(settingsBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Theme.SubText}) end)
+    settingsBtn.MouseLeave:Connect(function() animate(settingsBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Theme.Accent}) end)
     settingsBtn.MouseButton1Click:Connect(function()
         settingsMenu.Visible = not settingsMenu.Visible
     end)
@@ -528,8 +537,8 @@ function Library:CreateWindow(config)
         local now = os.clock()
         if now - lastUpdate >= 1 then
             local currentFPS = tostring(frames)
-            fpsLabel.Text = "FPS: " .. currentFPS
-            hudFps.Text = "FPS: " .. currentFPS
+            fpsLabel.Text = "FPS: " + currentFPS
+            hudFps.Text = "FPS: " + currentFPS
             frames = 0
             lastUpdate = now
         end
@@ -709,7 +718,7 @@ function Library:CreateTab(tabName)
     container.Position = UDim2.new(0, 8, 0, 8)
     container.BackgroundTransparency = 1
     container.BorderSizePixel = 0
-    container.ScrollBarThickness = 2
+    container.ScrollBarThickness = 0 -- Hidden by default as requested
     container.ScrollBarImageColor3 = Theme.Stroke
     container.ZIndex = 4
     container.Parent = pageFrame
@@ -839,7 +848,7 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
     textLabel.ZIndex = 6
     textLabel.Parent = containerFrame
 
-    local actionBtnWidth = currentKey and 100 or 110
+    local actionBtnWidth = 100
     local actionBtn = Instance.new("TextButton")
     actionBtn.Size = UDim2.new(0, actionBtnWidth, 0, 24)
     actionBtn.Position = UDim2.new(1, -actionBtnWidth, 0.5, -12)
@@ -860,51 +869,50 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
         task.spawn(callback, currentKey)
     end)
 
-    if currentKey then
-        local keybindBtn = Instance.new("TextButton")
-        keybindBtn.Size = UDim2.new(0, 40, 0, 24)
-        keybindBtn.Position = UDim2.new(1, -(actionBtnWidth + 46), 0.5, -12)
-        keybindBtn.BackgroundColor3 = Theme.Background
-        keybindBtn.Text = (currentKey == Enum.KeyCode.Unknown) and "" or currentKey.Name
-        keybindBtn.TextColor3 = Theme.SubText
-        keybindBtn.Font = Enum.Font.Gotham
-        keybindBtn.TextSize = 11
-        keybindBtn.ZIndex = 6
-        keybindBtn.Parent = containerFrame
-        createCorner(keybindBtn, 6)
-        createStroke(keybindBtn, Theme.Stroke)
+    local keybindBtn = Instance.new("TextButton")
+    keybindBtn.Size = UDim2.new(0, 40, 0, 24)
+    keybindBtn.Position = UDim2.new(1, -(actionBtnWidth + 46), 0.5, -12)
+    keybindBtn.BackgroundColor3 = Theme.Background
+    keybindBtn.Text = currentKey and currentKey.Name or "..."
+    keybindBtn.TextColor3 = Theme.SubText
+    keybindBtn.Font = Enum.Font.Gotham
+    keybindBtn.TextSize = 11
+    keybindBtn.ZIndex = 6
+    keybindBtn.Parent = containerFrame
+    createCorner(keybindBtn, 6)
+    createStroke(keybindBtn, Theme.Stroke)
 
-        local binding = false
-        keybindBtn.MouseButton1Click:Connect(function()
-            if binding then return end
-            binding = true
-            keybindBtn.Text = "..."
-            local connection
-            connection = UserInputService.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.Keyboard then
-                    if input.KeyCode == Enum.KeyCode.Escape then
-                        keybindBtn.Text = (currentKey == Enum.KeyCode.Unknown) and "" or currentKey.Name
-                        binding = false
-                        connection:Disconnect()
-                    else
-                        currentKey = input.KeyCode
-                        keybindBtn.Text = currentKey.Name
-                        binding = false
-                        connection:Disconnect()
-                    end
-                end
-            end)
-        end)
-
-        UserInputService.InputBegan:Connect(function(input, gameProcessed)
-            if gameProcessed then return end
-            if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == currentKey then
-                if not binding then
-                    task.spawn(callback, currentKey)
+    local binding = false
+    keybindBtn.MouseButton1Click:Connect(function()
+        if binding then return end
+        binding = true
+        keybindBtn.Text = "..."
+        local connection
+        connection = UserInputService.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                if input.KeyCode == Enum.KeyCode.Escape then
+                    currentKey = nil
+                    keybindBtn.Text = "..."
+                    binding = false
+                    connection:Disconnect()
+                else
+                    currentKey = input.KeyCode
+                    keybindBtn.Text = currentKey.Name
+                    binding = false
+                    connection:Disconnect()
                 end
             end
         end)
-    end
+    end)
+
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        if currentKey and input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == currentKey then
+            if not binding then
+                task.spawn(callback, currentKey)
+            end
+        end
+    end)
 end
 
 -- Component Method: CreateSlider
