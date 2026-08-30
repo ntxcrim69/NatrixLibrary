@@ -1,5 +1,5 @@
 --[[
-    Library Wrapper - "Natrix Pro"
+    LibraryWrapper: Natrix BACKEND
 ]]
 
 local Library = {}
