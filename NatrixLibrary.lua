@@ -1,6 +1,6 @@
 --[[
-    Natrix Pro UI Library - Complete Loader & Script Example
-    Matches the Visuals tab elements shown in your interface screenshot.
+    Premium Roblox UI Library Wrapper - "Natrix Pro"
+    Advanced modern GUI with fully persistent configuration saving across game injections, customizable menu toggle keybind, and draggable top HUD.
 ]]
 
 local Library = {}
@@ -23,63 +23,8 @@ local LocalPlayer = Players.LocalPlayer
 local ConfigFileName = "NatrixPro_Config.json"
 local Config = {
     FPSCounterEnabled = false,
-    ToggleKey = "RightShift",
-    Theme = "Default (Dark)"
+    ToggleKey = "RightShift"
 }
-
--- Theme Definitions
-local Themes = {
-    ["Default (Dark)"] = {
-        Background = Color3.fromRGB(12, 12, 14),
-        Surface = Color3.fromRGB(18, 18, 22),
-        SurfaceElevated = Color3.fromRGB(24, 24, 28),
-        Stroke = Color3.fromRGB(38, 38, 44),
-        Accent = Color3.fromRGB(255, 255, 255),
-        Text = Color3.fromRGB(240, 240, 240),
-        SubText = Color3.fromRGB(140, 140, 150),
-        Danger = Color3.fromRGB(239, 68, 68)
-    },
-    ["Midnight Blue"] = {
-        Background = Color3.fromRGB(10, 12, 18),
-        Surface = Color3.fromRGB(15, 20, 30),
-        SurfaceElevated = Color3.fromRGB(22, 28, 42),
-        Stroke = Color3.fromRGB(30, 40, 60),
-        Accent = Color3.fromRGB(59, 130, 246),
-        Text = Color3.fromRGB(240, 244, 255),
-        SubText = Color3.fromRGB(130, 150, 180),
-        Danger = Color3.fromRGB(239, 68, 68)
-    },
-    ["Crimson Red"] = {
-        Background = Color3.fromRGB(14, 11, 11),
-        Surface = Color3.fromRGB(22, 16, 16),
-        SurfaceElevated = Color3.fromRGB(32, 22, 22),
-        Stroke = Color3.fromRGB(50, 32, 32),
-        Accent = Color3.fromRGB(239, 68, 68),
-        Text = Color3.fromRGB(255, 240, 240),
-        SubText = Color3.fromRGB(170, 130, 130),
-        Danger = Color3.fromRGB(239, 68, 68)
-    },
-    ["Emerald"] = {
-        Background = Color3.fromRGB(11, 14, 12),
-        Surface = Color3.fromRGB(16, 22, 18),
-        SurfaceElevated = Color3.fromRGB(22, 32, 26),
-        Stroke = Color3.fromRGB(32, 50, 38),
-        Accent = Color3.fromRGB(16, 185, 129),
-        Text = Color3.fromRGB(240, 255, 245),
-        SubText = Color3.fromRGB(130, 160, 140),
-        Danger = Color3.fromRGB(239, 68, 68)
-    }
-}
-
-local Theme = {}
-local function LoadTheme(themeName)
-    local tData = Themes[themeName] or Themes["Default (Dark)"]
-    for k, v in pairs(tData) do
-        Theme[k] = v
-    end
-end
-
-LoadTheme(Config.Theme)
 
 local function SaveConfig()
     local success, encoded = pcall(function()
@@ -99,15 +44,25 @@ local function LoadConfig()
             for k, v in pairs(decoded) do
                 Config[k] = v
             end
-            if Config.Theme then
-                LoadTheme(Config.Theme)
-            end
         end
     end
 end
 
 LoadConfig()
 
+-- Design System Constants
+local Theme = {
+    Background = Color3.fromRGB(12, 12, 14),
+    Surface = Color3.fromRGB(18, 18, 22),
+    SurfaceElevated = Color3.fromRGB(24, 24, 28),
+    Stroke = Color3.fromRGB(38, 38, 44),
+    Accent = Color3.fromRGB(255, 255, 255),
+    Text = Color3.fromRGB(240, 240, 240),
+    SubText = Color3.fromRGB(140, 140, 150),
+    Danger = Color3.fromRGB(239, 68, 68)
+}
+
+-- Helper Functions
 local function createCorner(parent, radius)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, radius or 6)
@@ -141,9 +96,11 @@ local function animate(object, properties, duration)
     return tween
 end
 
+-- External Image Fetcher (With memory caching)
 local imageCache = {}
 local function FetchExternalImage(url, fileName)
     if imageCache[fileName] then return imageCache[fileName] end
+    
     local success, asset = pcall(function()
         if isfile and writefile and getcustomasset then
             if not isfile(fileName) then
@@ -154,11 +111,15 @@ local function FetchExternalImage(url, fileName)
         end
         return ""
     end)
+    
     local result = success and asset or ""
-    if result ~= "" then imageCache[fileName] = result end
+    if result ~= "" then
+        imageCache[fileName] = result
+    end
     return result
 end
 
+-- Flattened Status Tag Creator (Bypasses transparent frame render bugs)
 local function createStatusTag(parent, iconUrl, fileName, labelText, xOffset, width)
     local baseZIndex = parent.ZIndex or 1
 
@@ -191,6 +152,7 @@ function Library:CreateWindow(config)
     local useKeySystem = (config.KeySystem == true)
     local keySettings = config.KeySettings or { Keys = {}, Discord = "" }
 
+    -- Parent GUI Protection & Strict Global ZIndex
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "NatrixUI_" .. math.random(10000, 99999)
     screenGui.ResetOnSpawn = false
@@ -203,9 +165,16 @@ function Library:CreateWindow(config)
         screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
     end
 
-    local windowObj = { Gui = screenGui, Tabs = {}, ActiveTab = nil, TabHolder = nil, PageHolder = nil }
+    local windowObj = {
+        Gui = screenGui,
+        Tabs = {},
+        ActiveTab = nil,
+        TabHolder = nil,
+        PageHolder = nil
+    }
     setmetatable(windowObj, Library)
 
+    -- Master Container
     local outerContainer = Instance.new("Frame")
     outerContainer.Name = "OuterContainer"
     outerContainer.Size = UDim2.new(0, 600, 0, 480)
@@ -214,14 +183,16 @@ function Library:CreateWindow(config)
     outerContainer.ZIndex = 1
     outerContainer.Parent = screenGui
 
+    -- Configurable Menu Toggle Key (Loaded from Config)
     local currentToggleKey = Enum.KeyCode[Config.ToggleKey] or Enum.KeyCode.RightShift
 
-    UserInputService.InputBegan:Connect(function(input)
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if input.KeyCode == currentToggleKey then
             outerContainer.Visible = not outerContainer.Visible
         end
     end)
 
+    -- Top Middle Flush HUD Overlay (Strict High ZIndex)
     local topMiddleHud = Instance.new("Frame")
     topMiddleHud.Name = "TopMiddleHud"
     topMiddleHud.Size = UDim2.new(0, 230, 0, 32)
@@ -233,6 +204,7 @@ function Library:CreateWindow(config)
     createCorner(topMiddleHud, 6)
     createStroke(topMiddleHud, Theme.Stroke)
 
+    -- Draggable Logic for TopMiddleHud
     local hudDragging, hudDragInput, hudDragStart, hudStartPos
     topMiddleHud.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -248,10 +220,13 @@ function Library:CreateWindow(config)
     UserInputService.InputChanged:Connect(function(input)
         if input == hudDragInput and hudDragging then
             local delta = input.Position - hudDragStart
-            topMiddleHud.Position = UDim2.new(0, hudStartPos.X + delta.X, 0, hudStartPos.Y + delta.Y)
+            local newX = hudStartPos.X + delta.X
+            local newY = hudStartPos.Y + delta.Y
+            topMiddleHud.Position = UDim2.new(0, newX, 0, newY)
         end
     end)
 
+    -- Flattened HUD Items Built Directly into TopMiddleHud
     local hudFps = createStatusTag(topMiddleHud, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/speed.png?raw=true", "FPS_icon.png", "FPS", 0, 115)
     
     local hudDivider = Instance.new("Frame")
@@ -264,6 +239,7 @@ function Library:CreateWindow(config)
 
     local hudPing = createStatusTag(topMiddleHud, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/network.png?raw=true", "PING_icon.png", "PING", 115, 115)
 
+    -- Main UI Layout Setup
     local mainApp = Instance.new("CanvasGroup")
     mainApp.Name = "MainApp"
     mainApp.Size = UDim2.new(1, 0, 1, 0)
@@ -272,6 +248,7 @@ function Library:CreateWindow(config)
     mainApp.ZIndex = 2
     mainApp.Parent = outerContainer
 
+    -- 1. Top Navigation Bar
     local topBar = Instance.new("Frame")
     topBar.Name = "TopBar"
     topBar.Size = UDim2.new(1, 0, 0, 44)
@@ -282,6 +259,7 @@ function Library:CreateWindow(config)
     createCorner(topBar, 8)
     createStroke(topBar, Theme.Stroke)
 
+    -- Strict TopBar Dragging Logic
     local dragging, dragInput, dragStart, startPos
     topBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -317,6 +295,7 @@ function Library:CreateWindow(config)
 
     windowObj.TabHolder = tabListContainer
 
+    -- Strict X Close Button
     local closeBtn = Instance.new("TextButton")
     closeBtn.Name = "CloseBtn"
     closeBtn.Size = UDim2.new(0, 26, 0, 26)
@@ -335,6 +314,7 @@ function Library:CreateWindow(config)
     closeBtn.MouseLeave:Connect(function() animate(closeBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Theme.SubText}) end)
     closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 
+    -- 2. Content Area
     local contentArea = Instance.new("Frame")
     contentArea.Name = "ContentArea"
     contentArea.Size = UDim2.new(1, 0, 1, -110) 
@@ -347,6 +327,7 @@ function Library:CreateWindow(config)
     createStroke(contentArea, Theme.Stroke)
     windowObj.PageHolder = contentArea
 
+    -- 3. Settings Menu Overlay
     local settingsMenu = Instance.new("Frame")
     settingsMenu.Name = "SettingsMenu"
     settingsMenu.Size = UDim2.new(1, 0, 1, 0)
@@ -356,6 +337,7 @@ function Library:CreateWindow(config)
     settingsMenu.Parent = contentArea
     createCorner(settingsMenu, 8)
 
+    -- Settings Menu Toggle Item: FPS & Ping Counter
     local settingsToggleFrame = Instance.new("Frame")
     settingsToggleFrame.Size = UDim2.new(1, -24, 0, 42)
     settingsToggleFrame.Position = UDim2.new(0, 12, 0, 16)
@@ -413,6 +395,7 @@ function Library:CreateWindow(config)
         SaveConfig()
     end)
 
+    -- Settings Menu Row: Menu Hide Keybind
     local settingsKeybindFrame = Instance.new("Frame")
     settingsKeybindFrame.Size = UDim2.new(1, -24, 0, 42)
     settingsKeybindFrame.Position = UDim2.new(0, 12, 0, 68)
@@ -465,76 +448,10 @@ function Library:CreateWindow(config)
         end)
     end)
 
-    local settingsThemeFrame = Instance.new("Frame")
-    settingsThemeFrame.Size = UDim2.new(1, -24, 0, 42)
-    settingsThemeFrame.Position = UDim2.new(0, 12, 0, 120)
-    settingsThemeFrame.BackgroundColor3 = Theme.Surface
-    settingsThemeFrame.ZIndex = 11
-    settingsThemeFrame.Parent = settingsMenu
-    createCorner(settingsThemeFrame, 6)
-    createStroke(settingsThemeFrame, Theme.Stroke)
-    createPadding(settingsThemeFrame, 0, 0, 4, 12)
-
-    local stmText = Instance.new("TextLabel")
-    stmText.Size = UDim2.new(0.5, 0, 1, 0)
-    stmText.BackgroundTransparency = 1
-    stmText.Text = "UI Theme"
-    stmText.TextColor3 = Theme.Text
-    stmText.Font = Enum.Font.GothamMedium
-    stmText.TextSize = 13
-    stmText.TextXAlignment = Enum.TextXAlignment.Left
-    stmText.ZIndex = 12
-    stmText.Parent = settingsThemeFrame
-
-    local themeNames = {"Default (Dark)", "Midnight Blue", "Crimson Red", "Emerald"}
-    local currentThemeIndex = 1
-    for i, name in ipairs(themeNames) do
-        if name == Config.Theme then currentThemeIndex = i break end
-    end
-
-    local stmBtn = Instance.new("TextButton")
-    stmBtn.Size = UDim2.new(0, 115, 0, 24)
-    stmBtn.Position = UDim2.new(1, -115, 0.5, -12)
-    stmBtn.BackgroundColor3 = Theme.Background
-    stmBtn.Text = themeNames[currentThemeIndex]
-    stmBtn.TextColor3 = Theme.Accent
-    stmBtn.Font = Enum.Font.Gotham
-    stmBtn.TextSize = 11
-    stmBtn.ZIndex = 12
-    stmBtn.Parent = settingsThemeFrame
-    createCorner(stmBtn, 6)
-    createStroke(stmBtn, Theme.Stroke)
-
-    stmBtn.MouseButton1Click:Connect(function()
-        currentThemeIndex = currentThemeIndex % #themeNames + 1
-        local selectedThemeName = themeNames[currentThemeIndex]
-        stmBtn.Text = selectedThemeName
-        Config.Theme = selectedThemeName
-        LoadTheme(selectedThemeName)
-        SaveConfig()
-
-        topBar.BackgroundColor3 = Theme.Background
-        contentArea.BackgroundColor3 = Theme.Background
-        bottomBar.BackgroundColor3 = Theme.Background
-        settingsMenu.BackgroundColor3 = Theme.Background
-        topMiddleHud.BackgroundColor3 = Theme.Surface
-        closeBtn.BackgroundColor3 = Theme.Surface
-        closeBtn.TextColor3 = Theme.SubText
-        settingsToggleFrame.BackgroundColor3 = Theme.Surface
-        stText.TextColor3 = Theme.Text
-        settingsKeybindFrame.BackgroundColor3 = Theme.Surface
-        skText.TextColor3 = Theme.Text
-        skBtn.BackgroundColor3 = Theme.Background
-        skBtn.TextColor3 = Theme.SubText
-        settingsThemeFrame.BackgroundColor3 = Theme.Surface
-        stmText.TextColor3 = Theme.Text
-        stmBtn.BackgroundColor3 = Theme.Background
-        stmBtn.TextColor3 = Theme.Accent
-    end)
-
+    -- Close Settings Button
     local closeSettingsBtn = Instance.new("TextButton")
     closeSettingsBtn.Size = UDim2.new(0, 100, 0, 30)
-    closeSettingsBtn.Position = UDim2.new(0.5, -50, 0, 178)
+    closeSettingsBtn.Position = UDim2.new(0.5, -50, 1, -45)
     closeSettingsBtn.BackgroundColor3 = Theme.Surface
     closeSettingsBtn.Text = "Back"
     closeSettingsBtn.TextColor3 = Theme.Accent
@@ -549,6 +466,7 @@ function Library:CreateWindow(config)
         settingsMenu.Visible = false
     end)
 
+    -- 4. Bottom Status Bar
     local bottomBar = Instance.new("Frame")
     bottomBar.Name = "BottomBar"
     bottomBar.Size = UDim2.new(1, 0, 0, 46)
@@ -560,6 +478,7 @@ function Library:CreateWindow(config)
     createStroke(bottomBar, Theme.Stroke)
     createPadding(bottomBar, 6, 6, 8, 8)
 
+    -- FPS Bottom Tag Container
     local fpsWrapper = Instance.new("Frame")
     fpsWrapper.Size = UDim2.new(0, 105, 1, 0)
     fpsWrapper.BackgroundColor3 = Theme.Surface
@@ -568,6 +487,7 @@ function Library:CreateWindow(config)
     createCorner(fpsWrapper, 6)
     createStroke(fpsWrapper, Theme.Stroke)
     
+    -- Ping Bottom Tag Container
     local pingWrapper = Instance.new("Frame")
     pingWrapper.Size = UDim2.new(0, 115, 1, 0)
     pingWrapper.Position = UDim2.new(0, 113, 0, 0)
@@ -577,9 +497,11 @@ function Library:CreateWindow(config)
     createCorner(pingWrapper, 6)
     createStroke(pingWrapper, Theme.Stroke)
 
+    -- Bottom HUD Items Built Direct
     local fpsLabel = createStatusTag(fpsWrapper, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/speed.png?raw=true", "FPS_icon.png", "FPS", 0, 105)
     local pingLabel = createStatusTag(pingWrapper, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/network.png?raw=true", "PING_icon.png", "PING", 0, 115)
 
+    -- Settings Gear Button
     local settingsBtn = Instance.new("TextButton")
     settingsBtn.Size = UDim2.new(0, 32, 0, 32)
     settingsBtn.Position = UDim2.new(1, -32, 0.5, -16)
@@ -595,8 +517,11 @@ function Library:CreateWindow(config)
 
     settingsBtn.MouseEnter:Connect(function() animate(settingsBtn, {BackgroundColor3 = Theme.SurfaceElevated, TextColor3 = Theme.Accent}) end)
     settingsBtn.MouseLeave:Connect(function() animate(settingsBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Theme.SubText}) end)
-    settingsBtn.MouseButton1Click:Connect(function() settingsMenu.Visible = not settingsMenu.Visible end)
+    settingsBtn.MouseButton1Click:Connect(function()
+        settingsMenu.Visible = not settingsMenu.Visible
+    end)
 
+    -- Live Stats Logic Loops
     local frames = 0
     local lastUpdate = os.clock()
     RunService.RenderStepped:Connect(function()
@@ -611,24 +536,150 @@ function Library:CreateWindow(config)
         end
     end)
 
+    -- Accurate Network Ping Calculation
     task.spawn(function()
         while task.wait(1) do
             local pingVal = 0
-            local success, result = pcall(function() return LocalPlayer:GetNetworkPing() end)
+            local success, result = pcall(function()
+                return LocalPlayer:GetNetworkPing()
+            end)
+            
             if success and result then
                 pingVal = math.floor(result * 1000)
             else
-                pcall(function() pingVal = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue()) end)
+                pcall(function()
+                    pingVal = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
+                end)
             end
+            
             local currentPing = tostring(pingVal)
             pingLabel.Text = "PING: " .. currentPing
             hudPing.Text = "PING: " .. currentPing
         end
     end)
 
+    -- 5. Key System Overlay
+    if useKeySystem then
+        local keyModal = Instance.new("CanvasGroup")
+        keyModal.Name = "KeyModal"
+        keyModal.Size = UDim2.new(0, 440, 0, 320)
+        keyModal.Position = UDim2.new(0.5, -220, 0.5, -160)
+        keyModal.BackgroundColor3 = Theme.Background
+        keyModal.BorderSizePixel = 0
+        keyModal.ZIndex = 100
+        keyModal.Parent = outerContainer
+        createCorner(keyModal, 10)
+        createStroke(keyModal, Theme.Stroke)
+
+        local kDragging, kDragInput, kDragStart, kStartPos
+        keyModal.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                kDragging = true
+                kDragStart = input.Position
+                kStartPos = outerContainer.Position
+                input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then kDragging = false end end)
+            end
+        end)
+        keyModal.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement then kDragInput = input end end)
+        UserInputService.InputChanged:Connect(function(input)
+            if input == kDragInput and kDragging then
+                local delta = input.Position - kDragStart
+                outerContainer.Position = UDim2.new(kStartPos.X.Scale, kStartPos.X.Offset + delta.X, kStartPos.Y.Scale, kStartPos.Y.Offset + delta.Y)
+            end
+        end)
+
+        -- Discord Icon
+        local discordBtn = Instance.new("ImageButton")
+        discordBtn.Size = UDim2.new(0, 24, 0, 24)
+        discordBtn.Position = UDim2.new(1, -36, 0, 12)
+        discordBtn.BackgroundTransparency = 1
+        discordBtn.Image = FetchExternalImage("https://github.com/ntxcrim69/NatrixLibrary/blob/main/discord.png?raw=true", "NatrixDiscord.png")
+        discordBtn.ZIndex = 101
+        discordBtn.Parent = keyModal
+        
+        discordBtn.MouseEnter:Connect(function() animate(discordBtn, {Size = UDim2.new(0, 26, 0, 26), Position = UDim2.new(1, -37, 0, 11)}) end)
+        discordBtn.MouseLeave:Connect(function() animate(discordBtn, {Size = UDim2.new(0, 24, 0, 24), Position = UDim2.new(1, -36, 0, 12)}) end)
+        discordBtn.MouseButton1Click:Connect(function() if setclipboard and keySettings.Discord then setclipboard(keySettings.Discord) end end)
+
+        -- Center Main Logo
+        local logoLabel = Instance.new("ImageLabel")
+        logoLabel.Size = UDim2.new(0, 100, 0, 100)
+        logoLabel.Position = UDim2.new(0.5, -50, 0.1, 0)
+        logoLabel.BackgroundTransparency = 1
+        logoLabel.Image = FetchExternalImage("https://github.com/ntxcrim69/NatrixLibrary/blob/main/Natrixlogo.png?raw=true", "NatrixLogo.png")
+        logoLabel.ScaleType = Enum.ScaleType.Fit
+        logoLabel.ZIndex = 101
+        logoLabel.Parent = keyModal
+
+        -- Dark Key TextBox
+        local keyInput = Instance.new("TextBox")
+        keyInput.Size = UDim2.new(0, 300, 0, 46)
+        keyInput.Position = UDim2.new(0.5, -150, 0.52, 0)
+        keyInput.BackgroundColor3 = Theme.Surface
+        keyInput.TextColor3 = Theme.Accent
+        keyInput.PlaceholderText = "Enter Authentication Key"
+        keyInput.PlaceholderColor3 = Theme.SubText
+        keyInput.Text = ""
+        keyInput.Font = Enum.Font.GothamMedium
+        keyInput.TextSize = 13
+        keyInput.ZIndex = 101
+        keyInput.Parent = keyModal
+        createCorner(keyInput, 8)
+        createStroke(keyInput, Theme.Stroke)
+
+        -- Verify Button
+        local checkBtn = Instance.new("TextButton")
+        checkBtn.Size = UDim2.new(0, 140, 0, 42)
+        checkBtn.Position = UDim2.new(0.5, -70, 0.72, 0)
+        checkBtn.BackgroundColor3 = Theme.Surface
+        checkBtn.TextColor3 = Theme.Accent
+        checkBtn.Text = "Authenticate"
+        checkBtn.Font = Enum.Font.GothamBold
+        checkBtn.TextSize = 13
+        checkBtn.ZIndex = 101
+        checkBtn.Parent = keyModal
+        createCorner(checkBtn, 8)
+        createStroke(checkBtn, Theme.Stroke)
+
+        checkBtn.MouseEnter:Connect(function() animate(checkBtn, {BackgroundColor3 = Theme.SurfaceElevated}) end)
+        checkBtn.MouseLeave:Connect(function() animate(checkBtn, {BackgroundColor3 = Theme.Surface}) end)
+
+        checkBtn.MouseButton1Click:Connect(function()
+            local entered = keyInput.Text
+            local verified = false
+            if type(keySettings.Keys) == "table" then
+                for _, validKey in ipairs(keySettings.Keys) do
+                    if entered == validKey then
+                        verified = true
+                        break
+                    end
+                end
+            end
+
+            if verified then
+                local outTween = TweenService:Create(keyModal, TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -220, 0.45, -160), GroupTransparency = 1})
+                outTween:Play()
+                outTween.Completed:Wait()
+                keyModal:Destroy()
+                
+                mainApp.Visible = true
+                mainApp.GroupTransparency = 1
+                TweenService:Create(mainApp, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {GroupTransparency = 0}):Play()
+            else
+                keyInput.Text = ""
+                keyInput.PlaceholderText = "Invalid Key!"
+                local errTween = animate(keyInput, {BackgroundColor3 = Theme.Danger})
+                task.wait(1)
+                animate(keyInput, {BackgroundColor3 = Theme.Surface})
+                keyInput.PlaceholderText = "Enter Authentication Key"
+            end
+        end)
+    end
+
     return windowObj
 end
 
+-- Dynamic Tab Creation
 function Library:CreateTab(tabName)
     local window = self
 
@@ -674,7 +725,11 @@ function Library:CreateTab(tabName)
         container.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
     end)
 
-    local tabObj = { Button = tabBtn, Page = pageFrame, Container = container }
+    local tabObj = {
+        Button = tabBtn,
+        Page = pageFrame,
+        Container = container 
+    }
     setmetatable(tabObj, Tab)
     table.insert(window.Tabs, tabObj)
 
@@ -694,6 +749,7 @@ function Library:CreateTab(tabName)
     return tabObj
 end
 
+-- Component Method: CreateToggle
 function Tab:CreateToggle(label, defaultState, callback)
     callback = callback or function() end
     local state = defaultState or false
@@ -754,14 +810,10 @@ function Tab:CreateToggle(label, defaultState, callback)
     end)
 end
 
-function Tab:CreateButton(label, buttonText, defaultKey, callback)
-    if type(defaultKey) == "function" then
-        callback = defaultKey
-        defaultKey = nil
-    end
+-- Component Method: CreateKeybindButton
+function Tab:CreateKeybindButton(label, defaultKey, callback)
     callback = callback or function() end
-    buttonText = buttonText or "Button"
-    local currentKey = defaultKey
+    local currentKey = defaultKey or Enum.KeyCode.E
 
     local containerFrame = Instance.new("Frame")
     containerFrame.Size = UDim2.new(1, 0, 0, 42)
@@ -783,95 +835,142 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
     textLabel.ZIndex = 6
     textLabel.Parent = containerFrame
 
-    local actionBtnWidth = currentKey and 100 or 110
-    local actionBtn = Instance.new("TextButton")
-    actionBtn.Size = UDim2.new(0, actionBtnWidth, 0, 24)
-    actionBtn.Position = UDim2.new(1, -actionBtnWidth, 0.5, -12)
-    actionBtn.BackgroundColor3 = Theme.Surface
-    actionBtn.Text = buttonText
-    actionBtn.TextColor3 = Theme.Accent
-    actionBtn.Font = Enum.Font.GothamMedium
-    actionBtn.TextSize = 11
-    actionBtn.ZIndex = 6
-    actionBtn.Parent = containerFrame
-    createCorner(actionBtn, 6)
-    createStroke(actionBtn, Theme.Stroke)
+    local keybindBtn = Instance.new("TextButton")
+    keybindBtn.Size = UDim2.new(0, 40, 0, 24)
+    keybindBtn.Position = UDim2.new(1, -100, 0.5, -12)
+    keybindBtn.BackgroundColor3 = Theme.Background
+    keybindBtn.Text = currentKey.Name
+    keybindBtn.TextColor3 = Theme.SubText
+    keybindBtn.Font = Enum.Font.Gotham
+    keybindBtn.TextSize = 11
+    keybindBtn.ZIndex = 6
+    keybindBtn.Parent = containerFrame
+    createCorner(keybindBtn, 6)
+    createStroke(keybindBtn, Theme.Stroke)
 
-    actionBtn.MouseEnter:Connect(function() animate(actionBtn, {BackgroundColor3 = Theme.SurfaceElevated}) end)
-    actionBtn.MouseLeave:Connect(function() animate(actionBtn, {BackgroundColor3 = Theme.Surface}) end)
+    local applyBtn = Instance.new("TextButton")
+    applyBtn.Size = UDim2.new(0, 52, 0, 24)
+    applyBtn.Position = UDim2.new(1, -52, 0.5, -12)
+    applyBtn.BackgroundColor3 = Theme.SurfaceElevated
+    applyBtn.Text = "Apply"
+    applyBtn.TextColor3 = Theme.Accent
+    applyBtn.Font = Enum.Font.GothamMedium
+    applyBtn.TextSize = 11
+    applyBtn.ZIndex = 6
+    applyBtn.Parent = containerFrame
+    createCorner(applyBtn, 6)
+    createStroke(applyBtn, Theme.Stroke)
 
-    actionBtn.MouseButton1Click:Connect(function()
-        task.spawn(callback, currentKey)
+    applyBtn.MouseEnter:Connect(function() animate(applyBtn, {BackgroundColor3 = Theme.Stroke}) end)
+    applyBtn.MouseLeave:Connect(function() animate(applyBtn, {BackgroundColor3 = Theme.SurfaceElevated}) end)
+
+    local binding = false
+    keybindBtn.MouseButton1Click:Connect(function()
+        if binding then return end
+        binding = true
+        keybindBtn.Text = "..."
+        local connection
+        connection = UserInputService.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                currentKey = input.KeyCode
+                keybindBtn.Text = currentKey.Name
+                binding = false
+                connection:Disconnect()
+            end
+        end)
     end)
 
-    if currentKey then
-        local keybindBtn = Instance.new("TextButton")
-        keybindBtn.Size = UDim2.new(0, 40, 0, 24)
-        keybindBtn.Position = UDim2.new(1, -(actionBtnWidth + 46), 0.5, -12)
-        keybindBtn.BackgroundColor3 = Theme.Surface
-        keybindBtn.Text = currentKey.Name
-        keybindBtn.TextColor3 = Theme.SubText
-        keybindBtn.Font = Enum.Font.Gotham
-        keybindBtn.TextSize = 11
-        keybindBtn.ZIndex = 6
-        keybindBtn.Parent = containerFrame
-        createCorner(keybindBtn, 6)
-        createStroke(keybindBtn, Theme.Stroke)
-
-        local binding = false
-        keybindBtn.MouseButton1Click:Connect(function()
-            if binding then return end
-            binding = true
-            keybindBtn.Text = "..."
-            local connection
-            connection = UserInputService.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.Keyboard then
-                    if input.KeyCode == Enum.KeyCode.Escape then
-                        keybindBtn.Text = currentKey.Name
-                        binding = false
-                        connection:Disconnect()
-                    else
-                        currentKey = input.KeyCode
-                        keybindBtn.Text = currentKey.Name
-                        binding = false
-                        connection:Disconnect()
-                    end
-                end
-            end)
-        end)
-    end
+    applyBtn.MouseButton1Click:Connect(function()
+        task.spawn(callback, currentKey)
+    end)
 end
 
--- ==========================================
--- Example Initialization matching screenshot
--- ==========================================
+-- Component Method: CreateSlider
+function Tab:CreateSlider(label, min, max, defaultVal, callback)
+    callback = callback or function() end
+    min = min or 0
+    max = max or 100
+    defaultVal = math.clamp(defaultVal or min, min, max)
 
-local Window = Library:CreateWindow({
-    Name = "Natrix Interface",
-    KeySystem = false
-})
+    local sliderFrame = Instance.new("Frame")
+    sliderFrame.Size = UDim2.new(1, 0, 0, 46)
+    sliderFrame.BackgroundColor3 = Theme.Surface
+    sliderFrame.ZIndex = 5
+    sliderFrame.Parent = self.Container
+    createCorner(sliderFrame, 6)
+    createStroke(sliderFrame, Theme.Stroke)
+    createPadding(sliderFrame, 0, 0, 4, 12)
 
-local VisualsTab = Window:CreateTab("Visuals")
-local TeleportsTab = Window:CreateTab("Teleports")
-local AutoTab = Window:CreateTab("Auto")
-local CombatTab = Window:CreateTab("Combat")
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(0.35, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = label
+    textLabel.TextColor3 = Theme.Text
+    textLabel.Font = Enum.Font.GothamMedium
+    textLabel.TextSize = 13
+    textLabel.TextXAlignment = Enum.TextXAlignment.Left
+    textLabel.ZIndex = 6
+    textLabel.Parent = sliderFrame
 
-VisualsTab:CreateToggle("ESP Tokens", false, function(state)
-    print("ESP Tokens:", state)
-end)
+    local track = Instance.new("Frame")
+    track.Size = UDim2.new(0, 120, 0, 10)
+    track.Position = UDim2.new(1, -155, 0.5, -5)
+    track.BackgroundColor3 = Theme.Background
+    track.ZIndex = 6
+    track.Parent = sliderFrame
+    createCorner(track, 10)
+    createStroke(track, Theme.Stroke)
 
-VisualsTab:CreateToggle("ESP Abandoned Eggs", false, function(state)
-    print("ESP Abandoned Eggs:", state)
-end)
+    local initialPercent = (defaultVal - min) / (max - min)
 
-VisualsTab:CreateToggle("ESP Shrooms", false, function(state)
-    print("ESP Shrooms:", state)
-end)
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new(initialPercent, 0, 1, 0)
+    fill.BackgroundColor3 = Theme.Accent
+    fill.ZIndex = 7
+    fill.Parent = track
+    createCorner(fill, 10)
 
-VisualsTab:CreateToggle("No Fog", false, function(state)
-    print("No Fog:", state)
-end)
+    local valueLabel = Instance.new("TextLabel")
+    valueLabel.Size = UDim2.new(0, 26, 1, 0)
+    valueLabel.Position = UDim2.new(1, -26, 0, 0)
+    valueLabel.BackgroundTransparency = 1
+    valueLabel.Text = tostring(defaultVal)
+    valueLabel.TextColor3 = Theme.SubText
+    valueLabel.Font = Enum.Font.Gotham
+    valueLabel.TextSize = 12
+    valueLabel.ZIndex = 6
+    valueLabel.Parent = sliderFrame
 
-VisualsTab:CreateButton("FPS Boost", "Run", nil, function()
-    print("FPS Boost executed!")
-end)
+    local dragging = false
+    local function updateValue(input)
+        local mousePos = input.Position.X
+        local trackPos = track.AbsolutePosition.X
+        local trackSize = track.AbsoluteSize.X
+        local percent = math.clamp((mousePos - trackPos) / trackSize, 0, 1)
+        local val = math.floor(min + (max - min) * percent)
+        animate(fill, {Size = UDim2.new(percent, 0, 1, 0)}, 0.1)
+        valueLabel.Text = tostring(val)
+        task.spawn(callback, val)
+    end
+
+    track.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            updateValue(input)
+        end
+    end)
+
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = false
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            updateValue(input)
+        end
+    end)
+end
+
+return Library
