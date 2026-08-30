@@ -810,10 +810,15 @@ function Tab:CreateToggle(label, defaultState, callback)
     end)
 end
 
--- Component Method: CreateKeybindButton
-function Tab:CreateKeybindButton(label, defaultKey, callback)
+-- Component Method: CreateButton (Supports optional keybind)
+function Tab:CreateButton(label, buttonText, defaultKey, callback)
+    if type(defaultKey) == "function" then
+        callback = defaultKey
+        defaultKey = nil
+    end
     callback = callback or function() end
-    local currentKey = defaultKey or Enum.KeyCode.E
+    buttonText = buttonText or "Button"
+    local currentKey = defaultKey
 
     local containerFrame = Instance.new("Frame")
     containerFrame.Size = UDim2.new(1, 0, 0, 42)
@@ -835,69 +840,72 @@ function Tab:CreateKeybindButton(label, defaultKey, callback)
     textLabel.ZIndex = 6
     textLabel.Parent = containerFrame
 
-    local keybindBtn = Instance.new("TextButton")
-    keybindBtn.Size = UDim2.new(0, 40, 0, 24)
-    keybindBtn.Position = UDim2.new(1, -100, 0.5, -12)
-    keybindBtn.BackgroundColor3 = Theme.Background
-    keybindBtn.Text = currentKey.Name
-    keybindBtn.TextColor3 = Theme.SubText
-    keybindBtn.Font = Enum.Font.Gotham
-    keybindBtn.TextSize = 11
-    keybindBtn.ZIndex = 6
-    keybindBtn.Parent = containerFrame
-    createCorner(keybindBtn, 6)
-    createStroke(keybindBtn, Theme.Stroke)
+    local actionBtnWidth = currentKey and 100 or 110
+    local actionBtn = Instance.new("TextButton")
+    actionBtn.Size = UDim2.new(0, actionBtnWidth, 0, 24)
+    actionBtn.Position = UDim2.new(1, -actionBtnWidth, 0.5, -12)
+    actionBtn.BackgroundColor3 = Theme.SurfaceElevated
+    actionBtn.Text = buttonText
+    actionBtn.TextColor3 = Theme.Accent
+    actionBtn.Font = Enum.Font.GothamMedium
+    actionBtn.TextSize = 11
+    actionBtn.ZIndex = 6
+    actionBtn.Parent = containerFrame
+    createCorner(actionBtn, 6)
+    createStroke(actionBtn, Theme.Stroke)
 
-    local applyBtn = Instance.new("TextButton")
-    applyBtn.Size = UDim2.new(0, 52, 0, 24)
-    applyBtn.Position = UDim2.new(1, -52, 0.5, -12)
-    applyBtn.BackgroundColor3 = Theme.SurfaceElevated
-    applyBtn.Text = "Apply"
-    applyBtn.TextColor3 = Theme.Accent
-    applyBtn.Font = Enum.Font.GothamMedium
-    applyBtn.TextSize = 11
-    applyBtn.ZIndex = 6
-    applyBtn.Parent = containerFrame
-    createCorner(applyBtn, 6)
-    createStroke(applyBtn, Theme.Stroke)
+    actionBtn.MouseEnter:Connect(function() animate(actionBtn, {BackgroundColor3 = Theme.Stroke}) end)
+    actionBtn.MouseLeave:Connect(function() animate(actionBtn, {BackgroundColor3 = Theme.SurfaceElevated}) end)
 
-    applyBtn.MouseEnter:Connect(function() animate(applyBtn, {BackgroundColor3 = Theme.Stroke}) end)
-    applyBtn.MouseLeave:Connect(function() animate(applyBtn, {BackgroundColor3 = Theme.SurfaceElevated}) end)
-
-    local binding = false
-    keybindBtn.MouseButton1Click:Connect(function()
-        if binding then return end
-        binding = true
-        keybindBtn.Text = "..."
-        local connection
-        connection = UserInputService.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.Keyboard then
-                if input.KeyCode == Enum.KeyCode.Escape then
-                    keybindBtn.Text = currentKey.Name
-                    binding = false
-                    connection:Disconnect()
-                else
-                    currentKey = input.KeyCode
-                    keybindBtn.Text = currentKey.Name
-                    binding = false
-                    connection:Disconnect()
-                end
-            end
-        end)
-    end)
-
-    applyBtn.MouseButton1Click:Connect(function()
+    actionBtn.MouseButton1Click:Connect(function()
         task.spawn(callback, currentKey)
     end)
 
-    UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if gameProcessed then return end
-        if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == currentKey then
-            if not binding then
-                task.spawn(callback, currentKey)
+    if currentKey then
+        local keybindBtn = Instance.new("TextButton")
+        keybindBtn.Size = UDim2.new(0, 40, 0, 24)
+        keybindBtn.Position = UDim2.new(1, -(actionBtnWidth + 46), 0.5, -12)
+        keybindBtn.BackgroundColor3 = Theme.Background
+        keybindBtn.Text = currentKey.Name
+        keybindBtn.TextColor3 = Theme.SubText
+        keybindBtn.Font = Enum.Font.Gotham
+        keybindBtn.TextSize = 11
+        keybindBtn.ZIndex = 6
+        keybindBtn.Parent = containerFrame
+        createCorner(keybindBtn, 6)
+        createStroke(keybindBtn, Theme.Stroke)
+
+        local binding = false
+        keybindBtn.MouseButton1Click:Connect(function()
+            if binding then return end
+            binding = true
+            keybindBtn.Text = "..."
+            local connection
+            connection = UserInputService.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.Keyboard then
+                    if input.KeyCode == Enum.KeyCode.Escape then
+                        keybindBtn.Text = currentKey.Name
+                        binding = false
+                        connection:Disconnect()
+                    else
+                        currentKey = input.KeyCode
+                        keybindBtn.Text = currentKey.Name
+                        binding = false
+                        connection:Disconnect()
+                    end
+                end
+            end)
+        end)
+
+        UserInputService.InputBegan:Connect(function(input, gameProcessed)
+            if gameProcessed then return end
+            if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == currentKey then
+                if not binding then
+                    task.spawn(callback, currentKey)
+                end
             end
-        end
-    end)
+        end)
+    end
 end
 
 -- Component Method: CreateSlider
