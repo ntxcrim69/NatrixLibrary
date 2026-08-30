@@ -186,6 +186,7 @@ function Library:CreateWindow(config)
     local currentToggleKey = Enum.KeyCode[Config.ToggleKey] or Enum.KeyCode.RightShift
 
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if UserInputService:GetFocusedTextBox() then return end
         if input.KeyCode == currentToggleKey then
             outerContainer.Visible = not outerContainer.Visible
         end
@@ -440,9 +441,10 @@ function Library:CreateWindow(config)
                 currentToggleKey = input.KeyCode
                 Config.ToggleKey = currentToggleKey.Name
                 skBtn.Text = currentToggleKey.Name
-                skBinding = false
                 SaveConfig()
                 connection:Disconnect()
+                task.wait(0.1)
+                skBinding = false
             end
         end)
     end)
@@ -500,26 +502,23 @@ function Library:CreateWindow(config)
     local fpsLabel = createStatusTag(fpsWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/speed.png", "FPS_icon.png", "FPS", 0, 105)
     local pingLabel = createStatusTag(pingWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/network.png", "PING_icon.png", "PING", 0, 115)
 
-    -- Settings Gear Button
-    local settingsBtn = Instance.new("TextButton")
+    -- Settings Gear Button (Upgraded to ImageButton)
+    local settingsBtn = Instance.new("ImageButton")
     settingsBtn.Size = UDim2.new(0, 32, 0, 32)
     settingsBtn.Position = UDim2.new(1, -32, 0.5, -16)
     settingsBtn.BackgroundColor3 = Theme.Surface
-    settingsBtn.Text = "⚙"
-    settingsBtn.TextColor3 = Color3.fromRGB(255, 255, 255) -- Pure White Gear
-    settingsBtn.Font = Enum.Font.GothamBold
-    settingsBtn.TextSize = 20 
+    settingsBtn.Image = "rbxassetid://7059346373"
+    settingsBtn.ImageColor3 = Color3.fromRGB(255, 255, 255)
     settingsBtn.ZIndex = 3
     settingsBtn.Parent = bottomBar
     createCorner(settingsBtn, 6)
     createStroke(settingsBtn, Theme.Stroke)
 
-    -- Inverts to a white background with a black gear on hover
     settingsBtn.MouseEnter:Connect(function() 
-        animate(settingsBtn, {BackgroundColor3 = Theme.Accent, TextColor3 = Theme.Background}) 
+        animate(settingsBtn, {BackgroundColor3 = Theme.Accent, ImageColor3 = Theme.Background}) 
     end)
     settingsBtn.MouseLeave:Connect(function() 
-        animate(settingsBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Color3.fromRGB(255, 255, 255)}) 
+        animate(settingsBtn, {BackgroundColor3 = Theme.Surface, ImageColor3 = Color3.fromRGB(255, 255, 255)}) 
     end)
     settingsBtn.MouseButton1Click:Connect(function()
         settingsMenu.Visible = not settingsMenu.Visible
@@ -888,20 +887,22 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
                 if input.UserInputType == Enum.UserInputType.Keyboard then
                     if input.KeyCode == Enum.KeyCode.Escape then
                         keybindBtn.Text = currentKey.Name
-                        binding = false
                         connection:Disconnect()
+                        task.wait(0.1)
+                        binding = false
                     else
                         currentKey = input.KeyCode
                         keybindBtn.Text = currentKey.Name
-                        binding = false
                         connection:Disconnect()
+                        task.wait(0.1)
+                        binding = false
                     end
                 end
             end)
         end)
 
         UserInputService.InputBegan:Connect(function(input, gameProcessed)
-            if gameProcessed then return end
+            if UserInputService:GetFocusedTextBox() then return end
             if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == currentKey then
                 if not binding then
                     task.spawn(callback, currentKey)
