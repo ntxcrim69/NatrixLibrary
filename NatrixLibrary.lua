@@ -1,6 +1,6 @@
 --[[
     Premium Roblox UI Library Wrapper - "Natrix Pro"
-    Advanced modern GUI with persistent configuration saving across game injections, customizable menu toggle keybind, and draggable top HUD.
+    Advanced modern GUI with fully persistent configuration saving across game injections, customizable menu toggle keybind, and draggable top HUD.
 ]]
 
 local Library = {}
