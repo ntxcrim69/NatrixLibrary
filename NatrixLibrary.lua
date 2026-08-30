@@ -1,6 +1,6 @@
 --[[
     Premium Roblox UI Library Wrapper - "Natrix Pro"
-    Advanced modern GUI with single scroll layout and text-based icons.
+    Advanced modern GUI with Right Shift toggle, Settings overlay menu, and text-based icons.
 ]]
 
 local Library = {}
@@ -111,7 +111,14 @@ function Library:CreateWindow(config)
     outerContainer.BackgroundTransparency = 1
     outerContainer.Parent = screenGui
 
-    -- Main UI Layout Setup (Using CanvasGroup to support GroupTransparency fading)
+    -- Right Shift Toggle Visibility
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if input.KeyCode == Enum.KeyCode.RightShift then
+            outerContainer.Visible = not outerContainer.Visible
+        end
+    end)
+
+    -- Main UI Layout Setup
     local mainApp = Instance.new("CanvasGroup")
     mainApp.Name = "MainApp"
     mainApp.Size = UDim2.new(1, 0, 1, 0)
@@ -194,7 +201,69 @@ function Library:CreateWindow(config)
     createStroke(contentArea, Theme.Stroke)
     windowObj.PageHolder = contentArea
 
-    -- 3. Bottom Status Bar
+    -- 3. Settings Menu Overlay (Hidden by default, opened via settings button)
+    local settingsMenu = Instance.new("Frame")
+    settingsMenu.Name = "SettingsMenu"
+    settingsMenu.Size = UDim2.new(1, 0, 1, 0)
+    settingsMenu.BackgroundColor3 = Theme.Background
+    settingsMenu.Visible = false
+    settingsMenu.ZIndex = 5
+    settingsMenu.Parent = contentArea
+    createCorner(settingsMenu, 8)
+
+    -- Top Middle FPS & Ping Display inside Settings Menu
+    local statsContainer = Instance.new("Frame")
+    statsContainer.Name = "StatsContainer"
+    statsContainer.Size = UDim2.new(0, 240, 0, 36)
+    statsContainer.Position = UDim2.new(0.5, -120, 0, 12)
+    statsContainer.BackgroundTransparency = 1
+    statsContainer.ZIndex = 6
+    statsContainer.Parent = settingsMenu
+
+    local function createTopStat(parent, labelText, xPos)
+        local tag = Instance.new("Frame")
+        tag.Size = UDim2.new(0, 112, 1, 0)
+        tag.Position = UDim2.new(0, xPos, 0, 0)
+        tag.BackgroundColor3 = Theme.Surface
+        tag.ZIndex = 6
+        tag.Parent = parent
+        createCorner(tag, 6)
+        createStroke(tag, Theme.Stroke)
+
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, 0, 1, 0)
+        label.BackgroundTransparency = 1
+        label.Text = labelText .. ": --"
+        label.TextColor3 = Theme.SubText
+        label.Font = Enum.Font.GothamMedium
+        label.TextSize = 12
+        label.ZIndex = 7
+        label.Parent = tag
+        return label
+    end
+
+    local settingsFpsLabel = createTopStat(statsContainer, "FPS", 0)
+    local settingsPingLabel = createTopStat(statsContainer, "PING", 128)
+
+    -- Close Settings Button inside Settings Menu
+    local closeSettingsBtn = Instance.new("TextButton")
+    closeSettingsBtn.Size = UDim2.new(0, 100, 0, 30)
+    closeSettingsBtn.Position = UDim2.new(0.5, -50, 1, -45)
+    closeSettingsBtn.BackgroundColor3 = Theme.Surface
+    closeSettingsBtn.Text = "Back"
+    closeSettingsBtn.TextColor3 = Theme.Accent
+    closeSettingsBtn.Font = Enum.Font.GothamBold
+    closeSettingsBtn.TextSize = 12
+    closeSettingsBtn.ZIndex = 6
+    closeSettingsBtn.Parent = settingsMenu
+    createCorner(closeSettingsBtn, 6)
+    createStroke(closeSettingsBtn, Theme.Stroke)
+
+    closeSettingsBtn.MouseButton1Click:Connect(function()
+        settingsMenu.Visible = false
+    end)
+
+    -- 4. Bottom Status Bar
     local bottomBar = Instance.new("Frame")
     bottomBar.Name = "BottomBar"
     bottomBar.Size = UDim2.new(1, 0, 0, 46)
@@ -239,7 +308,7 @@ function Library:CreateWindow(config)
     local fpsLabel = createStatusTag(bottomBar, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/speed.png?raw=true", "FPS", 0, 105)
     local pingLabel = createStatusTag(bottomBar, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/network.png?raw=true", "PING", 113, 115)
 
-    -- Settings Gear Icon (Reverted to text/emoji version)
+    -- Settings Gear Button (Toggles Settings Menu)
     local settingsBtn = Instance.new("TextButton")
     settingsBtn.Size = UDim2.new(0, 32, 0, 32)
     settingsBtn.Position = UDim2.new(1, -32, 0.5, -16)
@@ -254,6 +323,9 @@ function Library:CreateWindow(config)
 
     settingsBtn.MouseEnter:Connect(function() animate(settingsBtn, {BackgroundColor3 = Theme.SurfaceElevated, TextColor3 = Theme.Accent}) end)
     settingsBtn.MouseLeave:Connect(function() animate(settingsBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Theme.SubText}) end)
+    settingsBtn.MouseButton1Click:Connect(function()
+        settingsMenu.Visible = not settingsMenu.Visible
+    end)
 
     -- Live Stats Logic Loops
     local frameCount = 0
@@ -261,7 +333,9 @@ function Library:CreateWindow(config)
     RunService.RenderStepped:Connect(function()
         frameCount = frameCount + 1
         if tick() - lastTick >= 1 then
-            fpsLabel.Text = "FPS: " .. tostring(frameCount)
+            local currentFPS = tostring(frameCount)
+            fpsLabel.Text = "FPS: " .. currentFPS
+            settingsFpsLabel.Text = "FPS: " .. currentFPS
             frameCount = 0
             lastTick = tick()
         end
@@ -271,12 +345,14 @@ function Library:CreateWindow(config)
         while task.wait(1) do
             local success, pingVal = pcall(function() return math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue()) end)
             if success then
-                pingLabel.Text = "PING: " .. tostring(pingVal)
+                local currentPing = tostring(pingVal)
+                pingLabel.Text = "PING: " .. currentPing
+                settingsPingLabel.Text = "PING: " .. currentPing
             end
         end
     end)
 
-    -- 4. Key System Overlay
+    -- 5. Key System Overlay
     if useKeySystem then
         local keyModal = Instance.new("CanvasGroup")
         keyModal.Name = "KeyModal"
@@ -370,13 +446,11 @@ function Library:CreateWindow(config)
             end
 
             if verified then
-                -- Smooth fade out the Key Modal
                 local outTween = TweenService:Create(keyModal, TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -220, 0.45, -160), GroupTransparency = 1})
                 outTween:Play()
                 outTween.Completed:Wait()
                 keyModal:Destroy()
                 
-                -- Fade in Main App CanvasGroup
                 mainApp.Visible = true
                 mainApp.GroupTransparency = 1
                 TweenService:Create(mainApp, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {GroupTransparency = 0}):Play()
@@ -417,7 +491,6 @@ function Library:CreateTab(tabName)
     pageFrame.Visible = false
     pageFrame.Parent = window.PageHolder
 
-    -- Unified Single Column Layout (Fixes the middle scrollbar issue)
     local container = Instance.new("ScrollingFrame")
     container.Name = "Container"
     container.Size = UDim2.new(1, -16, 1, -16)
@@ -434,7 +507,6 @@ function Library:CreateTab(tabName)
     layout.Padding = UDim.new(0, 6)
     layout.Parent = container
 
-    -- Auto-resize canvas logic to ensure scrolling works as elements are added
     layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
         container.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 10)
     end)
