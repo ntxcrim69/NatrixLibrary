@@ -865,7 +865,7 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
         keybindBtn.Size = UDim2.new(0, 40, 0, 24)
         keybindBtn.Position = UDim2.new(1, -(actionBtnWidth + 46), 0.5, -12)
         keybindBtn.BackgroundColor3 = Theme.Background
-        keybindBtn.Text = (currentKey == Enum.KeyCode.Unknown) and "None" or currentKey.Name
+        keybindBtn.Text = (currentKey == Enum.KeyCode.Unknown) and "" or currentKey.Name
         keybindBtn.TextColor3 = Theme.SubText
         keybindBtn.Font = Enum.Font.Gotham
         keybindBtn.TextSize = 11
@@ -883,7 +883,7 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
             connection = UserInputService.InputBegan:Connect(function(input)
                 if input.UserInputType == Enum.UserInputType.Keyboard then
                     if input.KeyCode == Enum.KeyCode.Escape then
-                        keybindBtn.Text = (currentKey == Enum.KeyCode.Unknown) and "None" or currentKey.Name
+                        keybindBtn.Text = (currentKey == Enum.KeyCode.Unknown) and "" or currentKey.Name
                         binding = false
                         connection:Disconnect()
                     else
