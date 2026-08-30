@@ -1,6 +1,6 @@
 --[[
     Premium Roblox UI Library Wrapper - "Natrix Pro"
-    Advanced modern GUI with Right Shift toggle, Settings overlay menu, and text-based icons.
+    Advanced modern GUI with Right Shift toggle, Settings overlay menu, and top-middle HUD FPS/Ping toggle.
 ]]
 
 local Library = {}
@@ -118,6 +118,41 @@ function Library:CreateWindow(config)
         end
     end)
 
+    -- Top Middle HUD Overlay (Controlled via Settings Menu Toggle)
+    local topMiddleHud = Instance.new("Frame")
+    topMiddleHud.Name = "TopMiddleHud"
+    topMiddleHud.Size = UDim2.new(0, 210, 0, 32)
+    topMiddleHud.Position = UDim2.new(0.5, -105, 0, 10)
+    topMiddleHud.BackgroundTransparency = 1
+    topMiddleHud.Visible = false
+    topMiddleHud.ZIndex = 10
+    topMiddleHud.Parent = screenGui
+
+    local hudFps = Instance.new("TextLabel")
+    hudFps.Size = UDim2.new(0.5, -2, 1, 0)
+    hudFps.BackgroundColor3 = Theme.Surface
+    hudFps.TextColor3 = Theme.SubText
+    hudFps.Font = Enum.Font.GothamMedium
+    hudFps.TextSize = 12
+    hudFps.Text = "FPS: --"
+    hudFps.ZIndex = 11
+    hudFps.Parent = topMiddleHud
+    createCorner(hudFps, 6)
+    createStroke(hudFps, Theme.Stroke)
+
+    local hudPing = Instance.new("TextLabel")
+    hudPing.Size = UDim2.new(0.5, -2, 1, 0)
+    hudPing.Position = UDim2.new(0.5, 2, 0, 0)
+    hudPing.BackgroundColor3 = Theme.Surface
+    hudPing.TextColor3 = Theme.SubText
+    hudPing.Font = Enum.Font.GothamMedium
+    hudPing.TextSize = 12
+    hudPing.Text = "PING: --"
+    hudPing.ZIndex = 11
+    hudPing.Parent = topMiddleHud
+    createCorner(hudPing, 6)
+    createStroke(hudPing, Theme.Stroke)
+
     -- Main UI Layout Setup
     local mainApp = Instance.new("CanvasGroup")
     mainApp.Name = "MainApp"
@@ -201,7 +236,7 @@ function Library:CreateWindow(config)
     createStroke(contentArea, Theme.Stroke)
     windowObj.PageHolder = contentArea
 
-    -- 3. Settings Menu Overlay (Hidden by default, opened via settings button)
+    -- 3. Settings Menu Overlay (Opened via Settings Gear Button)
     local settingsMenu = Instance.new("Frame")
     settingsMenu.Name = "SettingsMenu"
     settingsMenu.Size = UDim2.new(1, 0, 1, 0)
@@ -211,39 +246,63 @@ function Library:CreateWindow(config)
     settingsMenu.Parent = contentArea
     createCorner(settingsMenu, 8)
 
-    -- Top Middle FPS & Ping Display inside Settings Menu
-    local statsContainer = Instance.new("Frame")
-    statsContainer.Name = "StatsContainer"
-    statsContainer.Size = UDim2.new(0, 240, 0, 36)
-    statsContainer.Position = UDim2.new(0.5, -120, 0, 12)
-    statsContainer.BackgroundTransparency = 1
-    statsContainer.ZIndex = 6
-    statsContainer.Parent = settingsMenu
+    -- Settings Menu Toggle Item: FPS & Ping Counter
+    local settingsToggleFrame = Instance.new("Frame")
+    settingsToggleFrame.Size = UDim2.new(1, -24, 0, 42)
+    settingsToggleFrame.Position = UDim2.new(0, 12, 0, 16)
+    settingsToggleFrame.BackgroundColor3 = Theme.Surface
+    settingsToggleFrame.ZIndex = 6
+    settingsToggleFrame.Parent = settingsMenu
+    createCorner(settingsToggleFrame, 6)
+    createStroke(settingsToggleFrame, Theme.Stroke)
+    createPadding(settingsToggleFrame, 0, 0, 4, 12)
 
-    local function createTopStat(parent, labelText, xPos)
-        local tag = Instance.new("Frame")
-        tag.Size = UDim2.new(0, 112, 1, 0)
-        tag.Position = UDim2.new(0, xPos, 0, 0)
-        tag.BackgroundColor3 = Theme.Surface
-        tag.ZIndex = 6
-        tag.Parent = parent
-        createCorner(tag, 6)
-        createStroke(tag, Theme.Stroke)
+    local stText = Instance.new("TextLabel")
+    stText.Size = UDim2.new(0.6, 0, 1, 0)
+    stText.BackgroundTransparency = 1
+    stText.Text = "FPS & Ping Counter"
+    stText.TextColor3 = Theme.Text
+    stText.Font = Enum.Font.GothamMedium
+    stText.TextSize = 13
+    stText.TextXAlignment = Enum.TextXAlignment.Left
+    stText.ZIndex = 7
+    stText.Parent = settingsToggleFrame
 
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, 0, 1, 0)
-        label.BackgroundTransparency = 1
-        label.Text = labelText .. ": --"
-        label.TextColor3 = Theme.SubText
-        label.Font = Enum.Font.GothamMedium
-        label.TextSize = 12
-        label.ZIndex = 7
-        label.Parent = tag
-        return label
-    end
+    local stTrack = Instance.new("Frame")
+    stTrack.Size = UDim2.new(0, 40, 0, 20)
+    stTrack.Position = UDim2.new(1, -44, 0.5, -10)
+    stTrack.BackgroundColor3 = Theme.Background
+    stTrack.ZIndex = 7
+    stTrack.Parent = settingsToggleFrame
+    createCorner(stTrack, 20)
+    local stTrackStroke = createStroke(stTrack, Theme.Stroke)
 
-    local settingsFpsLabel = createTopStat(statsContainer, "FPS", 0)
-    local settingsPingLabel = createTopStat(statsContainer, "PING", 128)
+    local stKnob = Instance.new("Frame")
+    stKnob.Size = UDim2.new(0, 14, 0, 14)
+    stKnob.Position = UDim2.new(0, 3, 0.5, -7)
+    stKnob.BackgroundColor3 = Theme.SubText
+    stKnob.ZIndex = 8
+    stKnob.Parent = stTrack
+    createCorner(stKnob, 14)
+
+    local stBtn = Instance.new("TextButton")
+    stBtn.Size = UDim2.new(1, 0, 1, 0)
+    stBtn.BackgroundTransparency = 1
+    stBtn.Text = ""
+    stBtn.ZIndex = 9
+    stBtn.Parent = settingsToggleFrame
+
+    local fpsPingEnabled = false
+    stBtn.MouseButton1Click:Connect(function()
+        fpsPingEnabled = not fpsPingEnabled
+        topMiddleHud.Visible = fpsPingEnabled
+        stTrackStroke.Color = fpsPingEnabled and Theme.Accent or Theme.Stroke
+        animate(stTrack, {BackgroundColor3 = fpsPingEnabled and Theme.Accent or Theme.Background})
+        animate(stKnob, {
+            Position = fpsPingEnabled and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7),
+            BackgroundColor3 = fpsPingEnabled and Theme.Background or Theme.SubText
+        })
+    end)
 
     -- Close Settings Button inside Settings Menu
     local closeSettingsBtn = Instance.new("TextButton")
@@ -335,7 +394,7 @@ function Library:CreateWindow(config)
         if tick() - lastTick >= 1 then
             local currentFPS = tostring(frameCount)
             fpsLabel.Text = "FPS: " .. currentFPS
-            settingsFpsLabel.Text = "FPS: " .. currentFPS
+            hudFps.Text = "FPS: " .. currentFPS
             frameCount = 0
             lastTick = tick()
         end
@@ -347,7 +406,7 @@ function Library:CreateWindow(config)
             if success then
                 local currentPing = tostring(pingVal)
                 pingLabel.Text = "PING: " .. currentPing
-                settingsPingLabel.Text = "PING: " .. currentPing
+                hudPing.Text = "PING: " .. currentPing
             end
         end
     end)
