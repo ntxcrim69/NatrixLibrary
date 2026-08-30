@@ -1,6 +1,6 @@
 --[[
     Premium Roblox UI Library Wrapper - "Natrix Pro"
-    Advanced modern GUI with Right Shift toggle, Settings overlay menu, and top-middle HUD FPS/Ping toggle.
+    Advanced modern GUI with Right Shift toggle, Settings overlay menu, and flush top-middle HUD FPS/Ping display.
 ]]
 
 local Library = {}
@@ -118,40 +118,47 @@ function Library:CreateWindow(config)
         end
     end)
 
-    -- Top Middle HUD Overlay (Controlled via Settings Menu Toggle)
+    -- Top Middle Flush HUD Overlay (Controlled via Settings Menu Toggle)
     local topMiddleHud = Instance.new("Frame")
     topMiddleHud.Name = "TopMiddleHud"
     topMiddleHud.Size = UDim2.new(0, 210, 0, 32)
     topMiddleHud.Position = UDim2.new(0.5, -105, 0, 10)
-    topMiddleHud.BackgroundTransparency = 1
+    topMiddleHud.BackgroundColor3 = Theme.Surface
     topMiddleHud.Visible = false
     topMiddleHud.ZIndex = 10
     topMiddleHud.Parent = screenGui
+    createCorner(topMiddleHud, 6)
+    createStroke(topMiddleHud, Theme.Stroke)
 
     local hudFps = Instance.new("TextLabel")
-    hudFps.Size = UDim2.new(0.5, -2, 1, 0)
-    hudFps.BackgroundColor3 = Theme.Surface
+    hudFps.Size = UDim2.new(0.5, 0, 1, 0)
+    hudFps.Position = UDim2.new(0, 0, 0, 0)
+    hudFps.BackgroundTransparency = 1
     hudFps.TextColor3 = Theme.SubText
     hudFps.Font = Enum.Font.GothamMedium
     hudFps.TextSize = 12
     hudFps.Text = "FPS: --"
     hudFps.ZIndex = 11
     hudFps.Parent = topMiddleHud
-    createCorner(hudFps, 6)
-    createStroke(hudFps, Theme.Stroke)
+
+    local hudDivider = Instance.new("Frame")
+    hudDivider.Size = UDim2.new(0, 1, 0.6, 0)
+    hudDivider.Position = UDim2.new(0.5, 0, 0.2, 0)
+    hudDivider.BackgroundColor3 = Theme.Stroke
+    hudDivider.BorderSizePixel = 0
+    hudDivider.ZIndex = 11
+    hudDivider.Parent = topMiddleHud
 
     local hudPing = Instance.new("TextLabel")
-    hudPing.Size = UDim2.new(0.5, -2, 1, 0)
-    hudPing.Position = UDim2.new(0.5, 2, 0, 0)
-    hudPing.BackgroundColor3 = Theme.Surface
+    hudPing.Size = UDim2.new(0.5, 0, 1, 0)
+    hudPing.Position = UDim2.new(0.5, 0, 0, 0)
+    hudPing.BackgroundTransparency = 1
     hudPing.TextColor3 = Theme.SubText
     hudPing.Font = Enum.Font.GothamMedium
     hudPing.TextSize = 12
     hudPing.Text = "PING: --"
     hudPing.ZIndex = 11
     hudPing.Parent = topMiddleHud
-    createCorner(hudPing, 6)
-    createStroke(hudPing, Theme.Stroke)
 
     -- Main UI Layout Setup
     local mainApp = Instance.new("CanvasGroup")
@@ -393,8 +400,9 @@ function Library:CreateWindow(config)
         frameCount = frameCount + 1
         if tick() - lastTick >= 1 then
             local currentFPS = tostring(frameCount)
-            fpsLabel.Text = "FPS: " .. currentFPS
+            fpsLabel.Text = "FPS: " + currentFPS -- fixed concatenation below
             hudFps.Text = "FPS: " .. currentFPS
+            fpsLabel.Text = "FPS: " .. currentFPS
             frameCount = 0
             lastTick = tick()
         end
