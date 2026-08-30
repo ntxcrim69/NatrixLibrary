@@ -22,7 +22,9 @@ local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
 local ConfigFileName = "NatrixPro_Config.json"
 local Config = {
     FPSCounterEnabled = false,
-    ToggleKey = "RightShift"
+    ToggleKey = "RightShift",
+    BackgroundEnabled = true,
+    BackgroundUrl = "https://github.com/ntxcrim69/NatrixLibrary/blob/main/BlackHole.jpg?raw=true"
 }
 
 local function SaveConfig()
@@ -186,7 +188,6 @@ function Library:CreateWindow(config)
     local currentToggleKey = Enum.KeyCode[Config.ToggleKey] or Enum.KeyCode.RightShift
 
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if UserInputService:GetFocusedTextBox() then return end
         if input.KeyCode == currentToggleKey then
             outerContainer.Visible = not outerContainer.Visible
         end
@@ -247,6 +248,15 @@ function Library:CreateWindow(config)
     mainApp.Visible = not useKeySystem
     mainApp.ZIndex = 2
     mainApp.Parent = outerContainer
+    
+    local bgImage = Instance.new("ImageLabel")
+    bgImage.Name = "CustomBackground"
+    bgImage.Size = UDim2.new(1, 0, 1, 0)
+    bgImage.BackgroundTransparency = 1
+    bgImage.ScaleType = Enum.ScaleType.Crop
+    bgImage.ZIndex = 1
+    bgImage.Parent = outerContainer
+    createCorner(bgImage, 8)
 
     -- 1. Top Navigation Bar
     local topBar = Instance.new("Frame")
@@ -441,13 +451,131 @@ function Library:CreateWindow(config)
                 currentToggleKey = input.KeyCode
                 Config.ToggleKey = currentToggleKey.Name
                 skBtn.Text = currentToggleKey.Name
+                skBinding = false
                 SaveConfig()
                 connection:Disconnect()
-                task.wait(0.1)
-                skBinding = false
             end
         end)
     end)
+    
+    -- Settings Menu Row: Background Toggle
+    local settingsBgToggleFrame = Instance.new("Frame")
+    settingsBgToggleFrame.Size = UDim2.new(1, -24, 0, 42)
+    settingsBgToggleFrame.Position = UDim2.new(0, 12, 0, 120)
+    settingsBgToggleFrame.BackgroundColor3 = Theme.Surface
+    settingsBgToggleFrame.ZIndex = 11
+    settingsBgToggleFrame.Parent = settingsMenu
+    createCorner(settingsBgToggleFrame, 6)
+    createStroke(settingsBgToggleFrame, Theme.Stroke)
+    createPadding(settingsBgToggleFrame, 0, 0, 4, 12)
+
+    local bgToggleText = Instance.new("TextLabel")
+    bgToggleText.Size = UDim2.new(0.6, 0, 1, 0)
+    bgToggleText.BackgroundTransparency = 1
+    bgToggleText.Text = "Custom Background"
+    bgToggleText.TextColor3 = Theme.Text
+    bgToggleText.Font = Enum.Font.GothamMedium
+    bgToggleText.TextSize = 13
+    bgToggleText.TextXAlignment = Enum.TextXAlignment.Left
+    bgToggleText.ZIndex = 12
+    bgToggleText.Parent = settingsBgToggleFrame
+
+    local bgTrack = Instance.new("Frame")
+    bgTrack.Size = UDim2.new(0, 40, 0, 20)
+    bgTrack.Position = UDim2.new(1, -44, 0.5, -10)
+    bgTrack.BackgroundColor3 = Config.BackgroundEnabled and Theme.Accent or Theme.Background
+    bgTrack.ZIndex = 12
+    bgTrack.Parent = settingsBgToggleFrame
+    createCorner(bgTrack, 20)
+    local bgTrackStroke = createStroke(bgTrack, Config.BackgroundEnabled and Theme.Accent or Theme.Stroke)
+
+    local bgKnob = Instance.new("Frame")
+    bgKnob.Size = UDim2.new(0, 14, 0, 14)
+    bgKnob.Position = Config.BackgroundEnabled and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7)
+    bgKnob.BackgroundColor3 = Config.BackgroundEnabled and Theme.Background or Theme.SubText
+    bgKnob.ZIndex = 13
+    bgKnob.Parent = bgTrack
+    createCorner(bgKnob, 14)
+
+    local bgBtn = Instance.new("TextButton")
+    bgBtn.Size = UDim2.new(1, 0, 1, 0)
+    bgBtn.BackgroundTransparency = 1
+    bgBtn.Text = ""
+    bgBtn.ZIndex = 14
+    bgBtn.Parent = settingsBgToggleFrame
+    
+    -- Settings Menu Row: Background URL
+    local settingsBgUrlFrame = Instance.new("Frame")
+    settingsBgUrlFrame.Size = UDim2.new(1, -24, 0, 42)
+    settingsBgUrlFrame.Position = UDim2.new(0, 12, 0, 172)
+    settingsBgUrlFrame.BackgroundColor3 = Theme.Surface
+    settingsBgUrlFrame.ZIndex = 11
+    settingsBgUrlFrame.Parent = settingsMenu
+    createCorner(settingsBgUrlFrame, 6)
+    createStroke(settingsBgUrlFrame, Theme.Stroke)
+    createPadding(settingsBgUrlFrame, 0, 0, 4, 12)
+
+    local bgUrlText = Instance.new("TextLabel")
+    bgUrlText.Size = UDim2.new(0.4, 0, 1, 0)
+    bgUrlText.BackgroundTransparency = 1
+    bgUrlText.Text = "Background Image URL"
+    bgUrlText.TextColor3 = Theme.Text
+    bgUrlText.Font = Enum.Font.GothamMedium
+    bgUrlText.TextSize = 13
+    bgUrlText.TextXAlignment = Enum.TextXAlignment.Left
+    bgUrlText.ZIndex = 12
+    bgUrlText.Parent = settingsBgUrlFrame
+
+    local bgUrlInput = Instance.new("TextBox")
+    bgUrlInput.Size = UDim2.new(0, 200, 0, 24)
+    bgUrlInput.Position = UDim2.new(1, -200, 0.5, -12)
+    bgUrlInput.BackgroundColor3 = Theme.Background
+    bgUrlInput.TextColor3 = Theme.Accent
+    bgUrlInput.Text = Config.BackgroundUrl
+    bgUrlInput.PlaceholderText = "Paste Image URL Here"
+    bgUrlInput.Font = Enum.Font.GothamMedium
+    bgUrlInput.TextSize = 11
+    bgUrlInput.TextXAlignment = Enum.TextXAlignment.Center
+    bgUrlInput.ClearTextOnFocus = false
+    bgUrlInput.ZIndex = 12
+    bgUrlInput.Parent = settingsBgUrlFrame
+    createCorner(bgUrlInput, 6)
+    createStroke(bgUrlInput, Theme.Stroke)
+
+    local function UpdateBackgroundVisuals()
+        if Config.BackgroundEnabled and Config.BackgroundUrl ~= "" then
+            bgImage.Image = FetchExternalImage(Config.BackgroundUrl, "NatrixCustomBG.png")
+            bgImage.Visible = true
+            topBar.BackgroundTransparency = 0.25
+            contentArea.BackgroundTransparency = 0.25
+            bottomBar.BackgroundTransparency = 0.25
+        else
+            bgImage.Visible = false
+            topBar.BackgroundTransparency = 0
+            contentArea.BackgroundTransparency = 0
+            bottomBar.BackgroundTransparency = 0
+        end
+    end
+
+    bgBtn.MouseButton1Click:Connect(function()
+        Config.BackgroundEnabled = not Config.BackgroundEnabled
+        bgTrackStroke.Color = Config.BackgroundEnabled and Theme.Accent or Theme.Stroke
+        animate(bgTrack, {BackgroundColor3 = Config.BackgroundEnabled and Theme.Accent or Theme.Background})
+        animate(bgKnob, {
+            Position = Config.BackgroundEnabled and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7),
+            BackgroundColor3 = Config.BackgroundEnabled and Theme.Background or Theme.SubText
+        })
+        SaveConfig()
+        UpdateBackgroundVisuals()
+    end)
+
+    bgUrlInput.FocusLost:Connect(function()
+        Config.BackgroundUrl = bgUrlInput.Text
+        SaveConfig()
+        UpdateBackgroundVisuals()
+    end)
+
+    UpdateBackgroundVisuals()
 
     -- Close Settings Button
     local closeSettingsBtn = Instance.new("TextButton")
@@ -502,23 +630,26 @@ function Library:CreateWindow(config)
     local fpsLabel = createStatusTag(fpsWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/speed.png", "FPS_icon.png", "FPS", 0, 105)
     local pingLabel = createStatusTag(pingWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/network.png", "PING_icon.png", "PING", 0, 115)
 
-    -- Settings Gear Button (Upgraded to ImageButton)
-    local settingsBtn = Instance.new("ImageButton")
+    -- Settings Gear Button
+    local settingsBtn = Instance.new("TextButton")
     settingsBtn.Size = UDim2.new(0, 32, 0, 32)
     settingsBtn.Position = UDim2.new(1, -32, 0.5, -16)
     settingsBtn.BackgroundColor3 = Theme.Surface
-    settingsBtn.Image = "rbxassetid://7059346373"
-    settingsBtn.ImageColor3 = Color3.fromRGB(255, 255, 255)
+    settingsBtn.Text = "⚙"
+    settingsBtn.TextColor3 = Color3.fromRGB(255, 255, 255) -- Pure White Gear
+    settingsBtn.Font = Enum.Font.GothamBold
+    settingsBtn.TextSize = 20 
     settingsBtn.ZIndex = 3
     settingsBtn.Parent = bottomBar
     createCorner(settingsBtn, 6)
     createStroke(settingsBtn, Theme.Stroke)
 
+    -- Inverts to a white background with a black gear on hover
     settingsBtn.MouseEnter:Connect(function() 
-        animate(settingsBtn, {BackgroundColor3 = Theme.Accent, ImageColor3 = Theme.Background}) 
+        animate(settingsBtn, {BackgroundColor3 = Theme.Accent, TextColor3 = Theme.Background}) 
     end)
     settingsBtn.MouseLeave:Connect(function() 
-        animate(settingsBtn, {BackgroundColor3 = Theme.Surface, ImageColor3 = Color3.fromRGB(255, 255, 255)}) 
+        animate(settingsBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Color3.fromRGB(255, 255, 255)}) 
     end)
     settingsBtn.MouseButton1Click:Connect(function()
         settingsMenu.Visible = not settingsMenu.Visible
@@ -887,22 +1018,20 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
                 if input.UserInputType == Enum.UserInputType.Keyboard then
                     if input.KeyCode == Enum.KeyCode.Escape then
                         keybindBtn.Text = currentKey.Name
-                        connection:Disconnect()
-                        task.wait(0.1)
                         binding = false
+                        connection:Disconnect()
                     else
                         currentKey = input.KeyCode
                         keybindBtn.Text = currentKey.Name
-                        connection:Disconnect()
-                        task.wait(0.1)
                         binding = false
+                        connection:Disconnect()
                     end
                 end
             end)
         end)
 
         UserInputService.InputBegan:Connect(function(input, gameProcessed)
-            if UserInputService:GetFocusedTextBox() then return end
+            if gameProcessed then return end
             if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == currentKey then
                 if not binding then
                     task.spawn(callback, currentKey)
