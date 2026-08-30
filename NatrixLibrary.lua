@@ -64,8 +64,11 @@ local function animate(object, properties, duration)
     return tween
 end
 
--- External Image Fetcher for Executors
+-- External Image Fetcher (With memory caching for duplicates)
+local imageCache = {}
 local function FetchExternalImage(url, fileName)
+    if imageCache[fileName] then return imageCache[fileName] end
+    
     local success, asset = pcall(function()
         if isfile and writefile and getcustomasset then
             if not isfile(fileName) then
@@ -76,15 +79,23 @@ local function FetchExternalImage(url, fileName)
         end
         return ""
     end)
-    return success and asset or ""
+    
+    local result = success and asset or ""
+    if result ~= "" then
+        imageCache[fileName] = result
+    end
+    return result
 end
 
--- Unified Status Tag Creator (Ensures Top HUD and Bottom Bar are 100% identical)
+-- Unified Status Tag Creator (Dynamically inherits ZIndex to prevent overlap bugs)
 local function createStatusTag(parent, iconUrl, fileName, labelText, xOffset, width)
+    local baseZIndex = parent.ZIndex or 1
+
     local tag = Instance.new("Frame")
     tag.Size = UDim2.new(0, width, 1, 0)
     tag.Position = UDim2.new(0, xOffset, 0, 0)
     tag.BackgroundTransparency = 1
+    tag.ZIndex = baseZIndex + 1
     tag.Parent = parent
 
     local icon = Instance.new("ImageLabel")
@@ -92,6 +103,7 @@ local function createStatusTag(parent, iconUrl, fileName, labelText, xOffset, wi
     icon.Position = UDim2.new(0, 12, 0.5, -8)
     icon.BackgroundTransparency = 1
     icon.Image = FetchExternalImage(iconUrl, fileName)
+    icon.ZIndex = baseZIndex + 2
     icon.Parent = tag
 
     local label = Instance.new("TextLabel")
@@ -103,6 +115,7 @@ local function createStatusTag(parent, iconUrl, fileName, labelText, xOffset, wi
     label.Font = Enum.Font.GothamMedium
     label.TextSize = 12
     label.TextXAlignment = Enum.TextXAlignment.Left
+    label.ZIndex = baseZIndex + 2
     label.Parent = tag
 
     return label
@@ -114,11 +127,12 @@ function Library:CreateWindow(config)
     local useKeySystem = (config.KeySystem == true)
     local keySettings = config.KeySettings or { Keys = {}, Discord = "" }
 
-    -- Parent GUI Protection
+    -- Parent GUI Protection & ZIndex Behavior
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "NatrixUI_" .. math.random(10000, 99999)
     screenGui.ResetOnSpawn = false
     screenGui.IgnoreGuiInset = true
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling -- Forces correct rendering hierarchy
     
     local parentObj = (gethui and gethui()) or (syn and syn.protect_gui and CoreGui) or CoreGui
     pcall(function() screenGui.Parent = parentObj end)
@@ -186,7 +200,7 @@ function Library:CreateWindow(config)
         end
     end)
 
-    -- HUD Items Built with Unified Function
+    -- HUD Items Built with Unified Function (Now properly inherits ZIndex 10)
     local hudFps = createStatusTag(topMiddleHud, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/speed.png?raw=true", "FPS_icon.png", "FPS", 0, 115)
     
     local hudDivider = Instance.new("Frame")
