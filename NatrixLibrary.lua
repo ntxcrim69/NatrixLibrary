@@ -125,7 +125,7 @@ function Library:CreateWindow(config)
     local topMiddleHud = Instance.new("Frame")
     topMiddleHud.Name = "TopMiddleHud"
     topMiddleHud.Size = UDim2.new(0, 210, 0, 32)
-    topMiddleHud.Position = UDim2.new(0.5, -105, 0, -25)
+    topMiddleHud.Position = UDim2.new(0.5, -105, 0, 10)
     topMiddleHud.BackgroundColor3 = Theme.Surface
     topMiddleHud.Visible = false
     topMiddleHud.ZIndex = 10
