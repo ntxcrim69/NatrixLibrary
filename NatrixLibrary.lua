@@ -121,11 +121,11 @@ function Library:CreateWindow(config)
         end
     end)
 
-    -- Top Middle Flush HUD Overlay (Fully flush against the absolute top edge)
+    -- Top Middle Flush HUD Overlay (Shifted up with a negative offset to completely eliminate the top gap)
     local topMiddleHud = Instance.new("Frame")
     topMiddleHud.Name = "TopMiddleHud"
     topMiddleHud.Size = UDim2.new(0, 210, 0, 32)
-    topMiddleHud.Position = UDim2.new(0.5, -105, 0, 0)
+    topMiddleHud.Position = UDim2.new(0.5, -105, 0, -4)
     topMiddleHud.BackgroundColor3 = Theme.Surface
     topMiddleHud.Visible = false
     topMiddleHud.ZIndex = 10
