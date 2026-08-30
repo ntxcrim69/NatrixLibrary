@@ -1,5 +1,5 @@
 --[[
-    Library Wrapper - "Natrix Pro"
+    Library Wrapper - "Natrix Pro" (Robust File-Cached Image Pipeline)
 ]]
 
 local Library = {}
@@ -24,7 +24,7 @@ local Config = {
     FPSCounterEnabled = false,
     ToggleKey = "RightShift",
     BackgroundEnabled = true,
-    BackgroundUrl = "rbxassetid://6031094678"
+    BackgroundUrl = "https://github.com/ntxcrim69/NatrixLibrary/blob/main/BlackHole.jpg?raw=true"
 }
 
 local function SaveConfig()
@@ -97,27 +97,40 @@ local function animate(object, properties, duration)
     return tween
 end
 
--- External Image Fetcher (With memory caching and fixed raw URLs)
+-- Robust Filesystem Image Caching Pipeline (Downloads, caches locally, and generates valid runtime asset pointers via getcustomasset)
 local imageCache = {}
 local function FetchExternalImage(url, fileName)
     if imageCache[fileName] then return imageCache[fileName] end
     
-    local success, asset = pcall(function()
-        if isfile and writefile and getcustomasset then
-            if not isfile(fileName) then
-                local imgData = game:HttpGet(url)
-                writefile(fileName, imgData)
+    local assetResult = ""
+    pcall(function()
+        if writefile and readfile and isfile and getcustomasset then
+            if not isfolder("NatrixAssets") then
+                pcall(function() makefolder("NatrixAssets") end)
             end
-            return getcustomasset(fileName)
+            
+            local filePath = "NatrixAssets/" .. fileName
+            if not isfile(filePath) then
+                local success, imgData = pcall(function()
+                    return game:HttpGet(url)
+                end)
+                if success and imgData and #imgData > 0 then
+                    writefile(filePath, imgData)
+                end
+            end
+            
+            if isfile(filePath) then
+                assetResult = getcustomasset(filePath)
+            end
         end
-        return ""
     end)
     
-    local result = success and asset or ""
-    if result ~= "" then
-        imageCache[fileName] = result
+    if assetResult == "" then
+        assetResult = url
     end
-    return result
+    
+    imageCache[fileName] = assetResult
+    return assetResult
 end
 
 -- Flattened Status Tag Creator (Bypasses transparent frame render bugs)
@@ -227,7 +240,7 @@ function Library:CreateWindow(config)
         end
     end)
 
-    -- Flattened HUD Items Built Directly into TopMiddleHud (Using fixed raw links)
+    -- Flattened HUD Items Built Directly into TopMiddleHud
     local hudFps = createStatusTag(topMiddleHud, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/speed.png", "FPS_icon.png", "FPS", 0, 115)
     
     local hudDivider = Instance.new("Frame")
@@ -626,7 +639,7 @@ function Library:CreateWindow(config)
     createCorner(pingWrapper, 6)
     createStroke(pingWrapper, Theme.Stroke)
 
-    -- Bottom HUD Items Built Direct (Using fixed raw links)
+    -- Bottom HUD Items Built Direct
     local fpsLabel = createStatusTag(fpsWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/speed.png", "FPS_icon.png", "FPS", 0, 105)
     local pingLabel = createStatusTag(pingWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/network.png", "PING_icon.png", "PING", 0, 115)
 
@@ -636,7 +649,7 @@ function Library:CreateWindow(config)
     settingsBtn.Position = UDim2.new(1, -32, 0.5, -16)
     settingsBtn.BackgroundColor3 = Theme.Surface
     settingsBtn.Text = "⚙"
-    settingsBtn.TextColor3 = Color3.fromRGB(255, 255, 255) -- Pure White Gear
+    settingsBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     settingsBtn.Font = Enum.Font.GothamBold
     settingsBtn.TextSize = 20 
     settingsBtn.ZIndex = 3
@@ -644,7 +657,6 @@ function Library:CreateWindow(config)
     createCorner(settingsBtn, 6)
     createStroke(settingsBtn, Theme.Stroke)
 
-    -- Inverts to a white background with a black gear on hover
     settingsBtn.MouseEnter:Connect(function() 
         animate(settingsBtn, {BackgroundColor3 = Theme.Accent, TextColor3 = Theme.Background}) 
     end)
@@ -692,7 +704,7 @@ function Library:CreateWindow(config)
         end
     end)
 
-    -- 5. Key System Overlay (Converted to Frame to fix unsupported CanvasGroup render issues)
+    -- 5. Key System Overlay
     if useKeySystem then
         local keyModal = Instance.new("Frame")
         keyModal.Name = "KeyModal"
@@ -722,7 +734,7 @@ function Library:CreateWindow(config)
             end
         end)
 
-        -- Discord Icon (Fixed raw link)
+        -- Discord Icon
         local discordBtn = Instance.new("ImageButton")
         discordBtn.Size = UDim2.new(0, 24, 0, 24)
         discordBtn.Position = UDim2.new(1, -36, 0, 12)
@@ -735,7 +747,7 @@ function Library:CreateWindow(config)
         discordBtn.MouseLeave:Connect(function() animate(discordBtn, {Size = UDim2.new(0, 24, 0, 24), Position = UDim2.new(1, -36, 0, 12)}) end)
         discordBtn.MouseButton1Click:Connect(function() if setclipboard and keySettings.Discord then setclipboard(keySettings.Discord) end end)
 
-        -- Center Main Logo (Fixed raw link)
+        -- Center Main Logo
         local logoLabel = Instance.new("ImageLabel")
         logoLabel.Size = UDim2.new(0, 100, 0, 100)
         logoLabel.Position = UDim2.new(0.5, -50, 0.1, 0)
@@ -842,7 +854,7 @@ function Library:CreateTab(tabName)
     container.Position = UDim2.new(0, 8, 0, 8)
     container.BackgroundTransparency = 1
     container.BorderSizePixel = 0
-    container.ScrollBarThickness = 0 -- Hides the scrollbar completely while preserving scroll behavior
+    container.ScrollBarThickness = 0
     container.ZIndex = 4
     container.Parent = pageFrame
     createPadding(container, 2, 2, 2, 2)
@@ -941,7 +953,7 @@ function Tab:CreateToggle(label, defaultState, callback)
     end)
 end
 
--- Component Method: CreateButton (Supports optional keybind)
+-- Component Method: CreateButton
 function Tab:CreateButton(label, buttonText, defaultKey, callback)
     if type(defaultKey) == "function" then
         callback = defaultKey
