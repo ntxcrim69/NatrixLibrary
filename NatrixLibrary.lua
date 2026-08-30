@@ -23,8 +23,63 @@ local LocalPlayer = Players.LocalPlayer
 local ConfigFileName = "NatrixPro_Config.json"
 local Config = {
     FPSCounterEnabled = false,
-    ToggleKey = "RightShift"
+    ToggleKey = "RightShift",
+    Theme = "Default (Dark)"
 }
+
+-- Theme Definitions
+local Themes = {
+    ["Default (Dark)"] = {
+        Background = Color3.fromRGB(12, 12, 14),
+        Surface = Color3.fromRGB(18, 18, 22),
+        SurfaceElevated = Color3.fromRGB(24, 24, 28),
+        Stroke = Color3.fromRGB(38, 38, 44),
+        Accent = Color3.fromRGB(255, 255, 255),
+        Text = Color3.fromRGB(240, 240, 240),
+        SubText = Color3.fromRGB(140, 140, 150),
+        Danger = Color3.fromRGB(239, 68, 68)
+    },
+    ["Midnight Blue"] = {
+        Background = Color3.fromRGB(10, 12, 18),
+        Surface = Color3.fromRGB(15, 20, 30),
+        SurfaceElevated = Color3.fromRGB(22, 28, 42),
+        Stroke = Color3.fromRGB(30, 40, 60),
+        Accent = Color3.fromRGB(59, 130, 246),
+        Text = Color3.fromRGB(240, 244, 255),
+        SubText = Color3.fromRGB(130, 150, 180),
+        Danger = Color3.fromRGB(239, 68, 68)
+    },
+    ["Crimson Red"] = {
+        Background = Color3.fromRGB(14, 11, 11),
+        Surface = Color3.fromRGB(22, 16, 16),
+        SurfaceElevated = Color3.fromRGB(32, 22, 22),
+        Stroke = Color3.fromRGB(50, 32, 32),
+        Accent = Color3.fromRGB(239, 68, 68),
+        Text = Color3.fromRGB(255, 240, 240),
+        SubText = Color3.fromRGB(170, 130, 130),
+        Danger = Color3.fromRGB(239, 68, 68)
+    },
+    ["Emerald"] = {
+        Background = Color3.fromRGB(11, 14, 12),
+        Surface = Color3.fromRGB(16, 22, 18),
+        SurfaceElevated = Color3.fromRGB(22, 32, 26),
+        Stroke = Color3.fromRGB(32, 50, 38),
+        Accent = Color3.fromRGB(16, 185, 129),
+        Text = Color3.fromRGB(240, 255, 245),
+        SubText = Color3.fromRGB(130, 160, 140),
+        Danger = Color3.fromRGB(239, 68, 68)
+    }
+}
+
+local Theme = {}
+local function LoadTheme(themeName)
+    local tData = Themes[themeName] or Themes["Default (Dark)"]
+    for k, v in pairs(tData) do
+        Theme[k] = v
+    end
+end
+
+LoadTheme(Config.Theme)
 
 local function SaveConfig()
     local success, encoded = pcall(function()
@@ -44,23 +99,14 @@ local function LoadConfig()
             for k, v in pairs(decoded) do
                 Config[k] = v
             end
+            if Config.Theme then
+                LoadTheme(Config.Theme)
+            end
         end
     end
 end
 
 LoadConfig()
-
--- Design System Constants
-local Theme = {
-    Background = Color3.fromRGB(12, 12, 14),
-    Surface = Color3.fromRGB(18, 18, 22),
-    SurfaceElevated = Color3.fromRGB(24, 24, 28),
-    Stroke = Color3.fromRGB(38, 38, 44),
-    Accent = Color3.fromRGB(255, 255, 255),
-    Text = Color3.fromRGB(240, 240, 240),
-    SubText = Color3.fromRGB(140, 140, 150),
-    Danger = Color3.fromRGB(239, 68, 68)
-}
 
 -- Helper Functions
 local function createCorner(parent, radius)
@@ -448,10 +494,86 @@ function Library:CreateWindow(config)
         end)
     end)
 
+    -- Settings Menu Row: Theme Changer
+    local settingsThemeFrame = Instance.new("Frame")
+    settingsThemeFrame.Size = UDim2.new(1, -24, 0, 42)
+    settingsThemeFrame.Position = UDim2.new(0, 12, 0, 120)
+    settingsThemeFrame.BackgroundColor3 = Theme.Surface
+    settingsThemeFrame.ZIndex = 11
+    settingsThemeFrame.Parent = settingsMenu
+    createCorner(settingsThemeFrame, 6)
+    createStroke(settingsThemeFrame, Theme.Stroke)
+    createPadding(settingsThemeFrame, 0, 0, 4, 12)
+
+    local stmText = Instance.new("TextLabel")
+    stmText.Size = UDim2.new(0.5, 0, 1, 0)
+    stmText.BackgroundTransparency = 1
+    stmText.Text = "UI Theme"
+    stmText.TextColor3 = Theme.Text
+    stmText.Font = Enum.Font.GothamMedium
+    stmText.TextSize = 13
+    stmText.TextXAlignment = Enum.TextXAlignment.Left
+    stmText.ZIndex = 12
+    stmText.Parent = settingsThemeFrame
+
+    local themeNames = {"Default (Dark)", "Midnight Blue", "Crimson Red", "Emerald"}
+    local currentThemeIndex = 1
+    for i, name in ipairs(themeNames) do
+        if name == Config.Theme then
+            currentThemeIndex = i
+            break
+        end
+    end
+
+    local stmBtn = Instance.new("TextButton")
+    stmBtn.Size = UDim2.new(0, 115, 0, 24)
+    stmBtn.Position = UDim2.new(1, -115, 0.5, -12)
+    stmBtn.BackgroundColor3 = Theme.Background
+    stmBtn.Text = themeNames[currentThemeIndex]
+    stmBtn.TextColor3 = Theme.Accent
+    stmBtn.Font = Enum.Font.Gotham
+    stmBtn.TextSize = 11
+    stmBtn.ZIndex = 12
+    stmBtn.Parent = settingsThemeFrame
+    createCorner(stmBtn, 6)
+    createStroke(stmBtn, Theme.Stroke)
+
+    stmBtn.MouseButton1Click:Connect(function()
+        currentThemeIndex = currentThemeIndex % #themeNames + 1
+        local selectedThemeName = themeNames[currentThemeIndex]
+        stmBtn.Text = selectedThemeName
+        Config.Theme = selectedThemeName
+        LoadTheme(selectedThemeName)
+        SaveConfig()
+
+        -- Update main UI container elements dynamically
+        topBar.BackgroundColor3 = Theme.Background
+        contentArea.BackgroundColor3 = Theme.Background
+        bottomBar.BackgroundColor3 = Theme.Background
+        settingsMenu.BackgroundColor3 = Theme.Background
+        topMiddleHud.BackgroundColor3 = Theme.Surface
+        closeBtn.BackgroundColor3 = Theme.Surface
+        closeBtn.TextColor3 = Theme.SubText
+        settingsToggleFrame.BackgroundColor3 = Theme.Surface
+        stText.TextColor3 = Theme.Text
+        settingsKeybindFrame.BackgroundColor3 = Theme.Surface
+        skText.TextColor3 = Theme.Text
+        skBtn.BackgroundColor3 = Theme.Background
+        skBtn.TextColor3 = Theme.SubText
+        settingsThemeFrame.BackgroundColor3 = Theme.Surface
+        stmText.TextColor3 = Theme.Text
+        stmBtn.BackgroundColor3 = Theme.Background
+        stmBtn.TextColor3 = Theme.Accent
+        fpsWrapper.BackgroundColor3 = Theme.Surface
+        pingWrapper.BackgroundColor3 = Theme.Surface
+        settingsBtn.BackgroundColor3 = Theme.Surface
+        settingsBtn.TextColor3 = Theme.SubText
+    end)
+
     -- Close Settings Button
     local closeSettingsBtn = Instance.new("TextButton")
     closeSettingsBtn.Size = UDim2.new(0, 100, 0, 30)
-    closeSettingsBtn.Position = UDim2.new(0.5, -50, 1, -45)
+    closeSettingsBtn.Position = UDim2.new(0.5, -50, 0, 178)
     closeSettingsBtn.BackgroundColor3 = Theme.Surface
     closeSettingsBtn.Text = "Back"
     closeSettingsBtn.TextColor3 = Theme.Accent
