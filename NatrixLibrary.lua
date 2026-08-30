@@ -825,7 +825,7 @@ function Tab:CreateKeybindButton(label, defaultKey, callback)
     createPadding(containerFrame, 0, 0, 4, 12)
 
     local textLabel = Instance.new("TextLabel")
-    textLabel.Size = UDim2.new(0.5, 0, 1, 0)
+    textLabel.Size = UDim2.new(0.4, 0, 1, 0)
     textLabel.BackgroundTransparency = 1
     textLabel.Text = label
     textLabel.TextColor3 = Theme.Text
@@ -836,8 +836,8 @@ function Tab:CreateKeybindButton(label, defaultKey, callback)
     textLabel.Parent = containerFrame
 
     local keybindBtn = Instance.new("TextButton")
-    keybindBtn.Size = UDim2.new(0, 80, 0, 24)
-    keybindBtn.Position = UDim2.new(1, -80, 0.5, -12)
+    keybindBtn.Size = UDim2.new(0, 40, 0, 24)
+    keybindBtn.Position = UDim2.new(1, -100, 0.5, -12)
     keybindBtn.BackgroundColor3 = Theme.Background
     keybindBtn.Text = currentKey.Name
     keybindBtn.TextColor3 = Theme.SubText
@@ -847,6 +847,22 @@ function Tab:CreateKeybindButton(label, defaultKey, callback)
     keybindBtn.Parent = containerFrame
     createCorner(keybindBtn, 6)
     createStroke(keybindBtn, Theme.Stroke)
+
+    local applyBtn = Instance.new("TextButton")
+    applyBtn.Size = UDim2.new(0, 52, 0, 24)
+    applyBtn.Position = UDim2.new(1, -52, 0.5, -12)
+    applyBtn.BackgroundColor3 = Theme.SurfaceElevated
+    applyBtn.Text = "Apply"
+    applyBtn.TextColor3 = Theme.Accent
+    applyBtn.Font = Enum.Font.GothamMedium
+    applyBtn.TextSize = 11
+    applyBtn.ZIndex = 6
+    applyBtn.Parent = containerFrame
+    createCorner(applyBtn, 6)
+    createStroke(applyBtn, Theme.Stroke)
+
+    applyBtn.MouseEnter:Connect(function() animate(applyBtn, {BackgroundColor3 = Theme.Stroke}) end)
+    applyBtn.MouseLeave:Connect(function() animate(applyBtn, {BackgroundColor3 = Theme.SurfaceElevated}) end)
 
     local binding = false
     keybindBtn.MouseButton1Click:Connect(function()
@@ -862,6 +878,10 @@ function Tab:CreateKeybindButton(label, defaultKey, callback)
                 connection:Disconnect()
             end
         end)
+    end)
+
+    applyBtn.MouseButton1Click:Connect(function()
+        task.spawn(callback, currentKey)
     end)
 
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
