@@ -24,7 +24,7 @@ local Config = {
     FPSCounterEnabled = false,
     ToggleKey = "RightShift",
     BackgroundEnabled = true,
-    BackgroundUrl = "rbxassetid://134736124666311"
+    BackgroundUrl = "rbxassetid://6031094678"
 }
 
 local function SaveConfig()
