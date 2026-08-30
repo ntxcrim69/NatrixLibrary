@@ -1,6 +1,6 @@
 --[[
     Premium Roblox UI Library Wrapper - "Natrix Pro"
-    Advanced modern GUI with Right Shift toggle, Settings overlay menu, and flush top-middle HUD FPS/Ping display.
+    Advanced modern GUI with customizable menu toggle keybind, settings overlay menu, and flush top-middle HUD FPS/Ping display.
 ]]
 
 local Library = {}
@@ -111,18 +111,20 @@ function Library:CreateWindow(config)
     outerContainer.BackgroundTransparency = 1
     outerContainer.Parent = screenGui
 
-    -- Right Shift Toggle Visibility
+    -- Configurable Menu Toggle Key
+    local currentToggleKey = Enum.KeyCode.RightShift
+
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
-        if input.KeyCode == Enum.KeyCode.RightShift then
+        if input.KeyCode == currentToggleKey then
             outerContainer.Visible = not outerContainer.Visible
         end
     end)
 
-    -- Top Middle Flush HUD Overlay (Controlled via Settings Menu Toggle)
+    -- Top Middle Flush HUD Overlay (Fully flush against the top edge)
     local topMiddleHud = Instance.new("Frame")
     topMiddleHud.Name = "TopMiddleHud"
     topMiddleHud.Size = UDim2.new(0, 210, 0, 32)
-    topMiddleHud.Position = UDim2.new(0.5, -105, 0, 10)
+    topMiddleHud.Position = UDim2.new(0.5, -105, 0, 0)
     topMiddleHud.BackgroundColor3 = Theme.Surface
     topMiddleHud.Visible = false
     topMiddleHud.ZIndex = 10
@@ -311,6 +313,57 @@ function Library:CreateWindow(config)
         })
     end)
 
+    -- Settings Menu Row: Menu Hide Keybind
+    local settingsKeybindFrame = Instance.new("Frame")
+    settingsKeybindFrame.Size = UDim2.new(1, -24, 0, 42)
+    settingsKeybindFrame.Position = UDim2.new(0, 12, 0, 68)
+    settingsKeybindFrame.BackgroundColor3 = Theme.Surface
+    settingsKeybindFrame.ZIndex = 6
+    settingsKeybindFrame.Parent = settingsMenu
+    createCorner(settingsKeybindFrame, 6)
+    createStroke(settingsKeybindFrame, Theme.Stroke)
+    createPadding(settingsKeybindFrame, 0, 0, 4, 12)
+
+    local skText = Instance.new("TextLabel")
+    skText.Size = UDim2.new(0.6, 0, 1, 0)
+    skText.BackgroundTransparency = 1
+    skText.Text = "Menu Toggle Key"
+    skText.TextColor3 = Theme.Text
+    skText.Font = Enum.Font.GothamMedium
+    skText.TextSize = 13
+    skText.TextXAlignment = Enum.TextXAlignment.Left
+    skText.ZIndex = 7
+    skText.Parent = settingsKeybindFrame
+
+    local skBtn = Instance.new("TextButton")
+    skBtn.Size = UDim2.new(0, 65, 0, 24)
+    skBtn.Position = UDim2.new(1, -65, 0.5, -12)
+    skBtn.BackgroundColor3 = Theme.Background
+    skBtn.Text = currentToggleKey.Name
+    skBtn.TextColor3 = Theme.SubText
+    skBtn.Font = Enum.Font.Gotham
+    skBtn.TextSize = 11
+    skBtn.ZIndex = 7
+    skBtn.Parent = settingsKeybindFrame
+    createCorner(skBtn, 6)
+    createStroke(skBtn, Theme.Stroke)
+
+    local skBinding = false
+    skBtn.MouseButton1Click:Connect(function()
+        if skBinding then return end
+        skBinding = true
+        skBtn.Text = "..."
+        local connection
+        connection = UserInputService.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                currentToggleKey = input.KeyCode
+                skBtn.Text = currentToggleKey.Name
+                skBinding = false
+                connection:Disconnect()
+            end
+        end)
+    end)
+
     -- Close Settings Button inside Settings Menu
     local closeSettingsBtn = Instance.new("TextButton")
     closeSettingsBtn.Size = UDim2.new(0, 100, 0, 30)
@@ -400,9 +453,8 @@ function Library:CreateWindow(config)
         frameCount = frameCount + 1
         if tick() - lastTick >= 1 then
             local currentFPS = tostring(frameCount)
-            fpsLabel.Text = "FPS: " + currentFPS -- fixed concatenation below
-            hudFps.Text = "FPS: " .. currentFPS
             fpsLabel.Text = "FPS: " .. currentFPS
+            hudFps.Text = "FPS: " .. currentFPS
             frameCount = 0
             lastTick = tick()
         end
