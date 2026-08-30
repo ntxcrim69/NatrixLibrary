@@ -64,7 +64,7 @@ local function animate(object, properties, duration)
     return tween
 end
 
--- External Image Fetcher (With memory caching for duplicates)
+-- External Image Fetcher (With memory caching)
 local imageCache = {}
 local function FetchExternalImage(url, fileName)
     if imageCache[fileName] then return imageCache[fileName] end
@@ -87,36 +87,29 @@ local function FetchExternalImage(url, fileName)
     return result
 end
 
--- Unified Status Tag Creator (Dynamically inherits ZIndex to prevent overlap bugs)
+-- Flattened Status Tag Creator (Bypasses transparent frame render bugs)
 local function createStatusTag(parent, iconUrl, fileName, labelText, xOffset, width)
     local baseZIndex = parent.ZIndex or 1
 
-    local tag = Instance.new("Frame")
-    tag.Size = UDim2.new(0, width, 1, 0)
-    tag.Position = UDim2.new(0, xOffset, 0, 0)
-    tag.BackgroundTransparency = 1
-    tag.ZIndex = baseZIndex + 1
-    tag.Parent = parent
-
     local icon = Instance.new("ImageLabel")
     icon.Size = UDim2.new(0, 16, 0, 16)
-    icon.Position = UDim2.new(0, 12, 0.5, -8)
+    icon.Position = UDim2.new(0, xOffset + 12, 0.5, -8)
     icon.BackgroundTransparency = 1
     icon.Image = FetchExternalImage(iconUrl, fileName)
-    icon.ZIndex = baseZIndex + 2
-    icon.Parent = tag
+    icon.ZIndex = baseZIndex + 1
+    icon.Parent = parent
 
     local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(1, -36, 1, 0)
-    label.Position = UDim2.new(0, 36, 0, 0)
+    label.Size = UDim2.new(0, width - 36, 1, 0)
+    label.Position = UDim2.new(0, xOffset + 36, 0, 0)
     label.BackgroundTransparency = 1
     label.Text = labelText .. ": --"
     label.TextColor3 = Theme.SubText
     label.Font = Enum.Font.GothamMedium
     label.TextSize = 12
     label.TextXAlignment = Enum.TextXAlignment.Left
-    label.ZIndex = baseZIndex + 2
-    label.Parent = tag
+    label.ZIndex = baseZIndex + 1
+    label.Parent = parent
 
     return label
 end
@@ -127,12 +120,12 @@ function Library:CreateWindow(config)
     local useKeySystem = (config.KeySystem == true)
     local keySettings = config.KeySettings or { Keys = {}, Discord = "" }
 
-    -- Parent GUI Protection & ZIndex Behavior
+    -- Parent GUI Protection & Strict Global ZIndex
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "NatrixUI_" .. math.random(10000, 99999)
     screenGui.ResetOnSpawn = false
     screenGui.IgnoreGuiInset = true
-    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling -- Forces correct rendering hierarchy
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global 
     
     local parentObj = (gethui and gethui()) or (syn and syn.protect_gui and CoreGui) or CoreGui
     pcall(function() screenGui.Parent = parentObj end)
@@ -155,6 +148,7 @@ function Library:CreateWindow(config)
     outerContainer.Size = UDim2.new(0, 600, 0, 480)
     outerContainer.Position = UDim2.new(0.5, -300, 0.5, -240)
     outerContainer.BackgroundTransparency = 1
+    outerContainer.ZIndex = 1
     outerContainer.Parent = screenGui
 
     -- Configurable Menu Toggle Key
@@ -166,14 +160,14 @@ function Library:CreateWindow(config)
         end
     end)
 
-    -- Top Middle Flush HUD Overlay
+    -- Top Middle Flush HUD Overlay (Strict High ZIndex)
     local topMiddleHud = Instance.new("Frame")
     topMiddleHud.Name = "TopMiddleHud"
     topMiddleHud.Size = UDim2.new(0, 230, 0, 32)
     topMiddleHud.Position = UDim2.new(0.5, -115, 0, 10)
     topMiddleHud.BackgroundColor3 = Theme.Surface
     topMiddleHud.Visible = false
-    topMiddleHud.ZIndex = 10
+    topMiddleHud.ZIndex = 50
     topMiddleHud.Parent = screenGui
     createCorner(topMiddleHud, 6)
     createStroke(topMiddleHud, Theme.Stroke)
@@ -200,7 +194,7 @@ function Library:CreateWindow(config)
         end
     end)
 
-    -- HUD Items Built with Unified Function (Now properly inherits ZIndex 10)
+    -- Flattened HUD Items Built Directly into TopMiddleHud
     local hudFps = createStatusTag(topMiddleHud, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/speed.png?raw=true", "FPS_icon.png", "FPS", 0, 115)
     
     local hudDivider = Instance.new("Frame")
@@ -208,7 +202,7 @@ function Library:CreateWindow(config)
     hudDivider.Position = UDim2.new(0.5, 0, 0.2, 0)
     hudDivider.BackgroundColor3 = Theme.Stroke
     hudDivider.BorderSizePixel = 0
-    hudDivider.ZIndex = 11
+    hudDivider.ZIndex = 51
     hudDivider.Parent = topMiddleHud
 
     local hudPing = createStatusTag(topMiddleHud, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/network.png?raw=true", "PING_icon.png", "PING", 115, 115)
@@ -219,6 +213,7 @@ function Library:CreateWindow(config)
     mainApp.Size = UDim2.new(1, 0, 1, 0)
     mainApp.BackgroundTransparency = 1
     mainApp.Visible = not useKeySystem
+    mainApp.ZIndex = 2
     mainApp.Parent = outerContainer
 
     -- 1. Top Navigation Bar
@@ -227,6 +222,7 @@ function Library:CreateWindow(config)
     topBar.Size = UDim2.new(1, 0, 0, 44)
     topBar.BackgroundColor3 = Theme.Background
     topBar.BorderSizePixel = 0
+    topBar.ZIndex = 2
     topBar.Parent = mainApp
     createCorner(topBar, 8)
     createStroke(topBar, Theme.Stroke)
@@ -255,6 +251,7 @@ function Library:CreateWindow(config)
     tabListContainer.Name = "TabList"
     tabListContainer.Size = UDim2.new(1, -50, 1, 0)
     tabListContainer.BackgroundTransparency = 1
+    tabListContainer.ZIndex = 2
     tabListContainer.Parent = topBar
     createPadding(tabListContainer, 6, 6, 8, 8)
 
@@ -276,6 +273,7 @@ function Library:CreateWindow(config)
     closeBtn.TextColor3 = Theme.SubText
     closeBtn.Font = Enum.Font.GothamBold
     closeBtn.TextSize = 11
+    closeBtn.ZIndex = 3
     closeBtn.Parent = topBar
     createCorner(closeBtn, 6)
     createStroke(closeBtn, Theme.Stroke)
@@ -291,18 +289,19 @@ function Library:CreateWindow(config)
     contentArea.Position = UDim2.new(0, 0, 0, 54) 
     contentArea.BackgroundColor3 = Theme.Background
     contentArea.BorderSizePixel = 0
+    contentArea.ZIndex = 2
     contentArea.Parent = mainApp
     createCorner(contentArea, 8)
     createStroke(contentArea, Theme.Stroke)
     windowObj.PageHolder = contentArea
 
-    -- 3. Settings Menu Overlay (Opened via Settings Gear Button)
+    -- 3. Settings Menu Overlay
     local settingsMenu = Instance.new("Frame")
     settingsMenu.Name = "SettingsMenu"
     settingsMenu.Size = UDim2.new(1, 0, 1, 0)
     settingsMenu.BackgroundColor3 = Theme.Background
     settingsMenu.Visible = false
-    settingsMenu.ZIndex = 5
+    settingsMenu.ZIndex = 10
     settingsMenu.Parent = contentArea
     createCorner(settingsMenu, 8)
 
@@ -311,7 +310,7 @@ function Library:CreateWindow(config)
     settingsToggleFrame.Size = UDim2.new(1, -24, 0, 42)
     settingsToggleFrame.Position = UDim2.new(0, 12, 0, 16)
     settingsToggleFrame.BackgroundColor3 = Theme.Surface
-    settingsToggleFrame.ZIndex = 6
+    settingsToggleFrame.ZIndex = 11
     settingsToggleFrame.Parent = settingsMenu
     createCorner(settingsToggleFrame, 6)
     createStroke(settingsToggleFrame, Theme.Stroke)
@@ -325,14 +324,14 @@ function Library:CreateWindow(config)
     stText.Font = Enum.Font.GothamMedium
     stText.TextSize = 13
     stText.TextXAlignment = Enum.TextXAlignment.Left
-    stText.ZIndex = 7
+    stText.ZIndex = 12
     stText.Parent = settingsToggleFrame
 
     local stTrack = Instance.new("Frame")
     stTrack.Size = UDim2.new(0, 40, 0, 20)
     stTrack.Position = UDim2.new(1, -44, 0.5, -10)
     stTrack.BackgroundColor3 = Theme.Background
-    stTrack.ZIndex = 7
+    stTrack.ZIndex = 12
     stTrack.Parent = settingsToggleFrame
     createCorner(stTrack, 20)
     local stTrackStroke = createStroke(stTrack, Theme.Stroke)
@@ -341,7 +340,7 @@ function Library:CreateWindow(config)
     stKnob.Size = UDim2.new(0, 14, 0, 14)
     stKnob.Position = UDim2.new(0, 3, 0.5, -7)
     stKnob.BackgroundColor3 = Theme.SubText
-    stKnob.ZIndex = 8
+    stKnob.ZIndex = 13
     stKnob.Parent = stTrack
     createCorner(stKnob, 14)
 
@@ -349,7 +348,7 @@ function Library:CreateWindow(config)
     stBtn.Size = UDim2.new(1, 0, 1, 0)
     stBtn.BackgroundTransparency = 1
     stBtn.Text = ""
-    stBtn.ZIndex = 9
+    stBtn.ZIndex = 14
     stBtn.Parent = settingsToggleFrame
 
     local fpsPingEnabled = false
@@ -369,7 +368,7 @@ function Library:CreateWindow(config)
     settingsKeybindFrame.Size = UDim2.new(1, -24, 0, 42)
     settingsKeybindFrame.Position = UDim2.new(0, 12, 0, 68)
     settingsKeybindFrame.BackgroundColor3 = Theme.Surface
-    settingsKeybindFrame.ZIndex = 6
+    settingsKeybindFrame.ZIndex = 11
     settingsKeybindFrame.Parent = settingsMenu
     createCorner(settingsKeybindFrame, 6)
     createStroke(settingsKeybindFrame, Theme.Stroke)
@@ -383,7 +382,7 @@ function Library:CreateWindow(config)
     skText.Font = Enum.Font.GothamMedium
     skText.TextSize = 13
     skText.TextXAlignment = Enum.TextXAlignment.Left
-    skText.ZIndex = 7
+    skText.ZIndex = 12
     skText.Parent = settingsKeybindFrame
 
     local skBtn = Instance.new("TextButton")
@@ -394,7 +393,7 @@ function Library:CreateWindow(config)
     skBtn.TextColor3 = Theme.SubText
     skBtn.Font = Enum.Font.Gotham
     skBtn.TextSize = 11
-    skBtn.ZIndex = 7
+    skBtn.ZIndex = 12
     skBtn.Parent = settingsKeybindFrame
     createCorner(skBtn, 6)
     createStroke(skBtn, Theme.Stroke)
@@ -415,7 +414,7 @@ function Library:CreateWindow(config)
         end)
     end)
 
-    -- Close Settings Button inside Settings Menu
+    -- Close Settings Button
     local closeSettingsBtn = Instance.new("TextButton")
     closeSettingsBtn.Size = UDim2.new(0, 100, 0, 30)
     closeSettingsBtn.Position = UDim2.new(0.5, -50, 1, -45)
@@ -424,7 +423,7 @@ function Library:CreateWindow(config)
     closeSettingsBtn.TextColor3 = Theme.Accent
     closeSettingsBtn.Font = Enum.Font.GothamBold
     closeSettingsBtn.TextSize = 12
-    closeSettingsBtn.ZIndex = 6
+    closeSettingsBtn.ZIndex = 11
     closeSettingsBtn.Parent = settingsMenu
     createCorner(closeSettingsBtn, 6)
     createStroke(closeSettingsBtn, Theme.Stroke)
@@ -439,6 +438,7 @@ function Library:CreateWindow(config)
     bottomBar.Size = UDim2.new(1, 0, 0, 46)
     bottomBar.Position = UDim2.new(0, 0, 1, -46)
     bottomBar.BackgroundColor3 = Theme.Background
+    bottomBar.ZIndex = 2
     bottomBar.Parent = mainApp
     createCorner(bottomBar, 8)
     createStroke(bottomBar, Theme.Stroke)
@@ -448,6 +448,7 @@ function Library:CreateWindow(config)
     local fpsWrapper = Instance.new("Frame")
     fpsWrapper.Size = UDim2.new(0, 105, 1, 0)
     fpsWrapper.BackgroundColor3 = Theme.Surface
+    fpsWrapper.ZIndex = 3
     fpsWrapper.Parent = bottomBar
     createCorner(fpsWrapper, 6)
     createStroke(fpsWrapper, Theme.Stroke)
@@ -457,15 +458,16 @@ function Library:CreateWindow(config)
     pingWrapper.Size = UDim2.new(0, 115, 1, 0)
     pingWrapper.Position = UDim2.new(0, 113, 0, 0)
     pingWrapper.BackgroundColor3 = Theme.Surface
+    pingWrapper.ZIndex = 3
     pingWrapper.Parent = bottomBar
     createCorner(pingWrapper, 6)
     createStroke(pingWrapper, Theme.Stroke)
 
-    -- Bottom HUD Items Built with Unified Function
+    -- Bottom HUD Items Built Direct
     local fpsLabel = createStatusTag(fpsWrapper, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/speed.png?raw=true", "FPS_icon.png", "FPS", 0, 105)
     local pingLabel = createStatusTag(pingWrapper, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/network.png?raw=true", "PING_icon.png", "PING", 0, 115)
 
-    -- Settings Gear Button (Toggles Settings Menu)
+    -- Settings Gear Button
     local settingsBtn = Instance.new("TextButton")
     settingsBtn.Size = UDim2.new(0, 32, 0, 32)
     settingsBtn.Position = UDim2.new(1, -32, 0.5, -16)
@@ -474,6 +476,7 @@ function Library:CreateWindow(config)
     settingsBtn.TextColor3 = Theme.SubText
     settingsBtn.Font = Enum.Font.GothamBold
     settingsBtn.TextSize = 18
+    settingsBtn.ZIndex = 3
     settingsBtn.Parent = bottomBar
     createCorner(settingsBtn, 6)
     createStroke(settingsBtn, Theme.Stroke)
@@ -484,7 +487,7 @@ function Library:CreateWindow(config)
         settingsMenu.Visible = not settingsMenu.Visible
     end)
 
-    -- Live Stats Logic Loops (Highly Accurate os.clock() calculation)
+    -- Live Stats Logic Loops
     local frames = 0
     local lastUpdate = os.clock()
     RunService.RenderStepped:Connect(function()
@@ -529,6 +532,7 @@ function Library:CreateWindow(config)
         keyModal.Position = UDim2.new(0.5, -220, 0.5, -160)
         keyModal.BackgroundColor3 = Theme.Background
         keyModal.BorderSizePixel = 0
+        keyModal.ZIndex = 100
         keyModal.Parent = outerContainer
         createCorner(keyModal, 10)
         createStroke(keyModal, Theme.Stroke)
@@ -556,6 +560,7 @@ function Library:CreateWindow(config)
         discordBtn.Position = UDim2.new(1, -36, 0, 12)
         discordBtn.BackgroundTransparency = 1
         discordBtn.Image = FetchExternalImage("https://github.com/ntxcrim69/NatrixLibrary/blob/main/discord.png?raw=true", "NatrixDiscord.png")
+        discordBtn.ZIndex = 101
         discordBtn.Parent = keyModal
         
         discordBtn.MouseEnter:Connect(function() animate(discordBtn, {Size = UDim2.new(0, 26, 0, 26), Position = UDim2.new(1, -37, 0, 11)}) end)
@@ -569,6 +574,7 @@ function Library:CreateWindow(config)
         logoLabel.BackgroundTransparency = 1
         logoLabel.Image = FetchExternalImage("https://github.com/ntxcrim69/NatrixLibrary/blob/main/Natrixlogo.png?raw=true", "NatrixLogo.png")
         logoLabel.ScaleType = Enum.ScaleType.Fit
+        logoLabel.ZIndex = 101
         logoLabel.Parent = keyModal
 
         -- Dark Key TextBox
@@ -582,6 +588,7 @@ function Library:CreateWindow(config)
         keyInput.Text = ""
         keyInput.Font = Enum.Font.GothamMedium
         keyInput.TextSize = 13
+        keyInput.ZIndex = 101
         keyInput.Parent = keyModal
         createCorner(keyInput, 8)
         createStroke(keyInput, Theme.Stroke)
@@ -595,6 +602,7 @@ function Library:CreateWindow(config)
         checkBtn.Text = "Authenticate"
         checkBtn.Font = Enum.Font.GothamBold
         checkBtn.TextSize = 13
+        checkBtn.ZIndex = 101
         checkBtn.Parent = keyModal
         createCorner(checkBtn, 8)
         createStroke(checkBtn, Theme.Stroke)
@@ -650,6 +658,7 @@ function Library:CreateTab(tabName)
     tabBtn.TextColor3 = Theme.SubText
     tabBtn.Font = Enum.Font.GothamBold
     tabBtn.TextSize = 13
+    tabBtn.ZIndex = 3
     tabBtn.Parent = window.TabHolder
     createCorner(tabBtn, 6)
 
@@ -658,6 +667,7 @@ function Library:CreateTab(tabName)
     pageFrame.Size = UDim2.new(1, 0, 1, 0)
     pageFrame.BackgroundTransparency = 1
     pageFrame.Visible = false
+    pageFrame.ZIndex = 3
     pageFrame.Parent = window.PageHolder
 
     local container = Instance.new("ScrollingFrame")
@@ -668,6 +678,7 @@ function Library:CreateTab(tabName)
     container.BorderSizePixel = 0
     container.ScrollBarThickness = 2
     container.ScrollBarImageColor3 = Theme.Stroke
+    container.ZIndex = 4
     container.Parent = pageFrame
     createPadding(container, 2, 2, 2, 2)
 
@@ -712,6 +723,7 @@ function Tab:CreateToggle(label, defaultState, callback)
     local toggleFrame = Instance.new("Frame")
     toggleFrame.Size = UDim2.new(1, 0, 0, 42)
     toggleFrame.BackgroundColor3 = Theme.Surface
+    toggleFrame.ZIndex = 5
     toggleFrame.Parent = self.Container
     createCorner(toggleFrame, 6)
     createStroke(toggleFrame, Theme.Stroke)
@@ -725,12 +737,14 @@ function Tab:CreateToggle(label, defaultState, callback)
     textLabel.Font = Enum.Font.GothamMedium
     textLabel.TextSize = 13
     textLabel.TextXAlignment = Enum.TextXAlignment.Left
+    textLabel.ZIndex = 6
     textLabel.Parent = toggleFrame
 
     local switchTrack = Instance.new("Frame")
     switchTrack.Size = UDim2.new(0, 40, 0, 20)
     switchTrack.Position = UDim2.new(1, -44, 0.5, -10)
     switchTrack.BackgroundColor3 = state and Theme.Accent or Theme.Background
+    switchTrack.ZIndex = 6
     switchTrack.Parent = toggleFrame
     createCorner(switchTrack, 20)
     local trackStroke = createStroke(switchTrack, Theme.Stroke)
@@ -739,6 +753,7 @@ function Tab:CreateToggle(label, defaultState, callback)
     switchKnob.Size = UDim2.new(0, 14, 0, 14)
     switchKnob.Position = state and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7)
     switchKnob.BackgroundColor3 = state and Theme.Background or Theme.SubText
+    switchKnob.ZIndex = 7
     switchKnob.Parent = switchTrack
     createCorner(switchKnob, 14)
 
@@ -746,6 +761,7 @@ function Tab:CreateToggle(label, defaultState, callback)
     interactBtn.Size = UDim2.new(1, 0, 1, 0)
     interactBtn.BackgroundTransparency = 1
     interactBtn.Text = ""
+    interactBtn.ZIndex = 8
     interactBtn.Parent = toggleFrame
 
     interactBtn.MouseButton1Click:Connect(function()
@@ -768,6 +784,7 @@ function Tab:CreateKeybindButton(label, defaultKey, callback)
     local containerFrame = Instance.new("Frame")
     containerFrame.Size = UDim2.new(1, 0, 0, 42)
     containerFrame.BackgroundColor3 = Theme.Surface
+    containerFrame.ZIndex = 5
     containerFrame.Parent = self.Container
     createCorner(containerFrame, 6)
     createStroke(containerFrame, Theme.Stroke)
@@ -781,6 +798,7 @@ function Tab:CreateKeybindButton(label, defaultKey, callback)
     textLabel.Font = Enum.Font.GothamMedium
     textLabel.TextSize = 13
     textLabel.TextXAlignment = Enum.TextXAlignment.Left
+    textLabel.ZIndex = 6
     textLabel.Parent = containerFrame
 
     local keybindBtn = Instance.new("TextButton")
@@ -791,6 +809,7 @@ function Tab:CreateKeybindButton(label, defaultKey, callback)
     keybindBtn.TextColor3 = Theme.SubText
     keybindBtn.Font = Enum.Font.Gotham
     keybindBtn.TextSize = 11
+    keybindBtn.ZIndex = 6
     keybindBtn.Parent = containerFrame
     createCorner(keybindBtn, 6)
     createStroke(keybindBtn, Theme.Stroke)
@@ -803,6 +822,7 @@ function Tab:CreateKeybindButton(label, defaultKey, callback)
     applyBtn.TextColor3 = Theme.Accent
     applyBtn.Font = Enum.Font.GothamMedium
     applyBtn.TextSize = 11
+    applyBtn.ZIndex = 6
     applyBtn.Parent = containerFrame
     createCorner(applyBtn, 6)
     createStroke(applyBtn, Theme.Stroke)
@@ -841,6 +861,7 @@ function Tab:CreateSlider(label, min, max, defaultVal, callback)
     local sliderFrame = Instance.new("Frame")
     sliderFrame.Size = UDim2.new(1, 0, 0, 46)
     sliderFrame.BackgroundColor3 = Theme.Surface
+    sliderFrame.ZIndex = 5
     sliderFrame.Parent = self.Container
     createCorner(sliderFrame, 6)
     createStroke(sliderFrame, Theme.Stroke)
@@ -854,12 +875,14 @@ function Tab:CreateSlider(label, min, max, defaultVal, callback)
     textLabel.Font = Enum.Font.GothamMedium
     textLabel.TextSize = 13
     textLabel.TextXAlignment = Enum.TextXAlignment.Left
+    textLabel.ZIndex = 6
     textLabel.Parent = sliderFrame
 
     local track = Instance.new("Frame")
     track.Size = UDim2.new(0, 120, 0, 10)
     track.Position = UDim2.new(1, -155, 0.5, -5)
     track.BackgroundColor3 = Theme.Background
+    track.ZIndex = 6
     track.Parent = sliderFrame
     createCorner(track, 10)
     createStroke(track, Theme.Stroke)
@@ -869,6 +892,7 @@ function Tab:CreateSlider(label, min, max, defaultVal, callback)
     local fill = Instance.new("Frame")
     fill.Size = UDim2.new(initialPercent, 0, 1, 0)
     fill.BackgroundColor3 = Theme.Accent
+    fill.ZIndex = 7
     fill.Parent = track
     createCorner(fill, 10)
 
@@ -880,6 +904,7 @@ function Tab:CreateSlider(label, min, max, defaultVal, callback)
     valueLabel.TextColor3 = Theme.SubText
     valueLabel.Font = Enum.Font.Gotham
     valueLabel.TextSize = 12
+    valueLabel.ZIndex = 6
     valueLabel.Parent = sliderFrame
 
     local dragging = false
