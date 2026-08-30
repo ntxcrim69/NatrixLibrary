@@ -87,6 +87,7 @@ function Library:CreateWindow(config)
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "NatrixUI_" .. math.random(10000, 99999)
     screenGui.ResetOnSpawn = false
+    screenGui.IgnoreGuiInset = true
     
     local parentObj = (gethui and gethui()) or (syn and syn.protect_gui and CoreGui) or CoreGui
     pcall(function() screenGui.Parent = parentObj end)
@@ -120,7 +121,7 @@ function Library:CreateWindow(config)
         end
     end)
 
-    -- Top Middle Flush HUD Overlay (Fully flush against the top edge)
+    -- Top Middle Flush HUD Overlay (Fully flush against the absolute top edge)
     local topMiddleHud = Instance.new("Frame")
     topMiddleHud.Name = "TopMiddleHud"
     topMiddleHud.Size = UDim2.new(0, 210, 0, 32)
