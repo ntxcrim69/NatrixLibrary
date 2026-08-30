@@ -1,5 +1,5 @@
 --[[
-    LibraryWrapper: Natrix BACKEND
+    Library Wrapper - "Natrix Pro"
 ]]
 
 local Library = {}
@@ -51,14 +51,14 @@ LoadConfig()
 
 -- Design System Constants
 local Theme = {
-    Background = Color3.fromRGB(12, 12, 14),
-    Surface = Color3.fromRGB(18, 18, 22),
-    SurfaceElevated = Color3.fromRGB(24, 24, 28),
-    Stroke = Color3.fromRGB(38, 38, 44),
-    Accent = Color3.fromRGB(255, 255, 255),
-    Text = Color3.fromRGB(240, 240, 240),
-    SubText = Color3.fromRGB(140, 140, 150),
-    Danger = Color3.fromRGB(239, 68, 68)
+    Background = Color3.fromRGB(8, 8, 8),       -- Jet Black (#080808)
+    Surface = Color3.fromRGB(14, 14, 14),       -- Offset black for panels
+    SurfaceElevated = Color3.fromRGB(24, 24, 24),
+    Stroke = Color3.fromRGB(60, 60, 60),        -- High-contrast gray for borders
+    Accent = Color3.fromRGB(255, 255, 255),     -- Pure White
+    Text = Color3.fromRGB(255, 255, 255),       -- Pure White
+    SubText = Color3.fromRGB(160, 160, 160),    -- Light gray for inactive text
+    Danger = Color3.fromRGB(255, 55, 55)
 }
 
 -- Helper Functions
@@ -506,16 +506,21 @@ function Library:CreateWindow(config)
     settingsBtn.Position = UDim2.new(1, -32, 0.5, -16)
     settingsBtn.BackgroundColor3 = Theme.Surface
     settingsBtn.Text = "⚙"
-    settingsBtn.TextColor3 = Theme.Accent -- Updated to white/accent
+    settingsBtn.TextColor3 = Color3.fromRGB(255, 255, 255) -- Pure White Gear
     settingsBtn.Font = Enum.Font.GothamBold
-    settingsBtn.TextSize = 18
+    settingsBtn.TextSize = 20 
     settingsBtn.ZIndex = 3
     settingsBtn.Parent = bottomBar
     createCorner(settingsBtn, 6)
     createStroke(settingsBtn, Theme.Stroke)
 
-    settingsBtn.MouseEnter:Connect(function() animate(settingsBtn, {BackgroundColor3 = Theme.SurfaceElevated, TextColor3 = Theme.Accent}) end)
-    settingsBtn.MouseLeave:Connect(function() animate(settingsBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Theme.SubText}) end)
+    -- Inverts to a white background with a black gear on hover
+    settingsBtn.MouseEnter:Connect(function() 
+        animate(settingsBtn, {BackgroundColor3 = Theme.Accent, TextColor3 = Theme.Background}) 
+    end)
+    settingsBtn.MouseLeave:Connect(function() 
+        animate(settingsBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Color3.fromRGB(255, 255, 255)}) 
+    end)
     settingsBtn.MouseButton1Click:Connect(function()
         settingsMenu.Visible = not settingsMenu.Visible
     end)
