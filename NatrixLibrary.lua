@@ -872,10 +872,16 @@ function Tab:CreateKeybindButton(label, defaultKey, callback)
         local connection
         connection = UserInputService.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.Keyboard then
-                currentKey = input.KeyCode
-                keybindBtn.Text = currentKey.Name
-                binding = false
-                connection:Disconnect()
+                if input.KeyCode == Enum.KeyCode.Escape then
+                    keybindBtn.Text = currentKey.Name
+                    binding = false
+                    connection:Disconnect()
+                else
+                    currentKey = input.KeyCode
+                    keybindBtn.Text = currentKey.Name
+                    binding = false
+                    connection:Disconnect()
+                end
             end
         end)
     end)
