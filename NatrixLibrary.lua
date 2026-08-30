@@ -111,15 +111,15 @@ function Library:CreateWindow(config)
     outerContainer.BackgroundTransparency = 1
     outerContainer.Parent = screenGui
 
-    -- Main UI Layout Setup (Visible after key system)
-    local mainApp = Instance.new("Frame")
+    -- Main UI Layout Setup (Using CanvasGroup to support GroupTransparency fading)
+    local mainApp = Instance.new("CanvasGroup")
     mainApp.Name = "MainApp"
     mainApp.Size = UDim2.new(1, 0, 1, 0)
     mainApp.BackgroundTransparency = 1
     mainApp.Visible = not useKeySystem
     mainApp.Parent = outerContainer
 
-    -- 1. Top Navigation Bar (Separated for the gap)
+    -- 1. Top Navigation Bar
     local topBar = Instance.new("Frame")
     topBar.Name = "TopBar"
     topBar.Size = UDim2.new(1, 0, 0, 44)
@@ -182,10 +182,9 @@ function Library:CreateWindow(config)
     closeBtn.MouseLeave:Connect(function() animate(closeBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Theme.SubText}) end)
     closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 
-    -- 2. The Upper Gap & Content Area
+    -- 2. Content Area
     local contentArea = Instance.new("Frame")
     contentArea.Name = "ContentArea"
-    -- Note the position leaves a distinct 10px gap below the top bar
     contentArea.Size = UDim2.new(1, 0, 1, -110) 
     contentArea.Position = UDim2.new(0, 0, 0, 54) 
     contentArea.BackgroundColor3 = Theme.Background
@@ -195,7 +194,7 @@ function Library:CreateWindow(config)
     createStroke(contentArea, Theme.Stroke)
     windowObj.PageHolder = contentArea
 
-    -- 3. Bottom Status Bar (Separated with gap)
+    -- 3. Bottom Status Bar
     local bottomBar = Instance.new("Frame")
     bottomBar.Name = "BottomBar"
     bottomBar.Size = UDim2.new(1, 0, 0, 46)
@@ -237,16 +236,15 @@ function Library:CreateWindow(config)
         return label
     end
 
-    -- Create custom icon tags using your URLs
     local fpsLabel = createStatusTag(bottomBar, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/speed.png?raw=true", "FPS", 0, 105)
     local pingLabel = createStatusTag(bottomBar, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/network.png?raw=true", "PING", 113, 115)
 
-    -- Settings Gear Icon (Right aligned)
+    -- Settings Gear Icon (Updated to clean material design icon)
     local settingsBtn = Instance.new("ImageButton")
     settingsBtn.Size = UDim2.new(0, 32, 0, 32)
     settingsBtn.Position = UDim2.new(1, -32, 0.5, -16)
     settingsBtn.BackgroundColor3 = Theme.Surface
-    settingsBtn.Image = FetchExternalImage("https://github.com/ntxcrim69/NatrixLibrary/blob/main/gear.png?raw=true", "gear_icon.png")
+    settingsBtn.Image = FetchExternalImage("https://raw.githubusercontent.com/google/material-design-icons/master/png/action/settings/materialicons/48dp/2x/baseline_settings_white_48dp.png", "NatrixSettings.png")
     settingsBtn.ImageColor3 = Theme.SubText
     settingsBtn.Parent = bottomBar
     createCorner(settingsBtn, 6)
@@ -276,9 +274,10 @@ function Library:CreateWindow(config)
         end
     end)
 
-    -- 4. Key System Overlay (If enabled)
+    -- 4. Key System Overlay
     if useKeySystem then
-        local keyModal = Instance.new("Frame")
+        -- Key System uses a CanvasGroup to support smooth fading out
+        local keyModal = Instance.new("CanvasGroup")
         keyModal.Name = "KeyModal"
         keyModal.Size = UDim2.new(0, 440, 0, 320)
         keyModal.Position = UDim2.new(0.5, -220, 0.5, -160)
@@ -288,7 +287,6 @@ function Library:CreateWindow(config)
         createCorner(keyModal, 10)
         createStroke(keyModal, Theme.Stroke)
 
-        -- Draggable Modal
         local kDragging, kDragInput, kDragStart, kStartPos
         keyModal.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -371,13 +369,13 @@ function Library:CreateWindow(config)
             end
 
             if verified then
-                -- Smooth fade out
+                -- Smooth fade out the Key Modal
                 local outTween = TweenService:Create(keyModal, TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -220, 0.45, -160), GroupTransparency = 1})
                 outTween:Play()
                 outTween.Completed:Wait()
                 keyModal:Destroy()
                 
-                -- Fade in app
+                -- Fade in Main App CanvasGroup
                 mainApp.Visible = true
                 mainApp.GroupTransparency = 1
                 TweenService:Create(mainApp, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {GroupTransparency = 0}):Play()
@@ -411,7 +409,6 @@ function Library:CreateTab(tabName)
     tabBtn.Parent = window.TabHolder
     createCorner(tabBtn, 6)
 
-    -- Split Canvas (Left/Right gap)
     local pageFrame = Instance.new("Frame")
     pageFrame.Name = tabName .. "_Page"
     pageFrame.Size = UDim2.new(1, 0, 1, 0)
@@ -461,7 +458,6 @@ function Library:CreateTab(tabName)
     setmetatable(tabObj, Tab)
     table.insert(window.Tabs, tabObj)
 
-    -- Tab Switch Logic
     local function selectTab()
         for _, t in ipairs(window.Tabs) do
             t.Page.Visible = false
@@ -501,7 +497,6 @@ function Tab:CreateToggle(label, defaultState, callback)
     textLabel.TextXAlignment = Enum.TextXAlignment.Left
     textLabel.Parent = toggleFrame
 
-    -- Outer Pill Track
     local switchTrack = Instance.new("Frame")
     switchTrack.Size = UDim2.new(0, 40, 0, 20)
     switchTrack.Position = UDim2.new(1, -44, 0.5, -10)
@@ -510,7 +505,6 @@ function Tab:CreateToggle(label, defaultState, callback)
     createCorner(switchTrack, 20)
     local trackStroke = createStroke(switchTrack, Theme.Stroke)
 
-    -- Inner Indicator Knob
     local switchKnob = Instance.new("Frame")
     switchKnob.Size = UDim2.new(0, 14, 0, 14)
     switchKnob.Position = state and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7)
@@ -588,6 +582,7 @@ function Tab:CreateKeybindButton(label, defaultKey, callback)
 
     local binding = false
     keybindBtn.MouseButton1Click:Connect(function()
+        if binding then return end
         binding = true
         keybindBtn.Text = "..."
         local connection
