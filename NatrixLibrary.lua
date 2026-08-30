@@ -966,7 +966,7 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
     local actionBtn = Instance.new("TextButton")
     actionBtn.Size = UDim2.new(0, actionBtnWidth, 0, 24)
     actionBtn.Position = UDim2.new(1, -actionBtnWidth, 0.5, -12)
-    actionBtn.BackgroundColor3 = Theme.Background
+    actionBtn.BackgroundColor3 = Theme.Surface -- Matches the row surface color instead of Theme.Background
     actionBtn.Text = buttonText
     actionBtn.TextColor3 = Theme.Accent
     actionBtn.Font = Enum.Font.GothamMedium
@@ -976,8 +976,8 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
     createCorner(actionBtn, 6)
     createStroke(actionBtn, Theme.Stroke)
 
-    actionBtn.MouseEnter:Connect(function() animate(actionBtn, {BackgroundColor3 = Theme.Surface}) end)
-    actionBtn.MouseLeave:Connect(function() animate(actionBtn, {BackgroundColor3 = Theme.Background}) end)
+    actionBtn.MouseEnter:Connect(function() animate(actionBtn, {BackgroundColor3 = Theme.SurfaceElevated}) end)
+    actionBtn.MouseLeave:Connect(function() animate(actionBtn, {BackgroundColor3 = Theme.Surface}) end)
 
     actionBtn.MouseButton1Click:Connect(function()
         task.spawn(callback, currentKey)
@@ -987,7 +987,7 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
         local keybindBtn = Instance.new("TextButton")
         keybindBtn.Size = UDim2.new(0, 40, 0, 24)
         keybindBtn.Position = UDim2.new(1, -(actionBtnWidth + 46), 0.5, -12)
-        keybindBtn.BackgroundColor3 = Theme.Background
+        keybindBtn.BackgroundColor3 = Theme.Surface -- Matches the row surface color
         keybindBtn.Text = currentKey.Name
         keybindBtn.TextColor3 = Theme.SubText
         keybindBtn.Font = Enum.Font.Gotham
