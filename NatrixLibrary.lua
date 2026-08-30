@@ -1,6 +1,6 @@
 --[[
-    Professional Roblox UI Library Wrapper
-    Fully customizable dark UI with dynamic tabs, controls, and web-fetched image support.
+    Premium Roblox UI Library Wrapper - "Natrix Pro"
+    Advanced modern GUI with strokes, dynamic easing, gap layouts, and web assets.
 ]]
 
 local Library = {}
@@ -15,6 +15,18 @@ local RunService = game:GetService("RunService")
 local Stats = game:GetService("Stats")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
+
+-- Design System Constants
+local Theme = {
+    Background = Color3.fromRGB(12, 12, 14),
+    Surface = Color3.fromRGB(18, 18, 22),
+    SurfaceElevated = Color3.fromRGB(24, 24, 28),
+    Stroke = Color3.fromRGB(38, 38, 44),
+    Accent = Color3.fromRGB(255, 255, 255),
+    Text = Color3.fromRGB(240, 240, 240),
+    SubText = Color3.fromRGB(140, 140, 150),
+    Danger = Color3.fromRGB(239, 68, 68)
+}
 
 -- Helper Functions
 local function createCorner(parent, radius)
@@ -34,6 +46,22 @@ local function createPadding(parent, top, bottom, left, right)
     return padding
 end
 
+local function createStroke(parent, color, thickness)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = color or Theme.Stroke
+    stroke.Thickness = thickness or 1
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Parent = parent
+    return stroke
+end
+
+local function animate(object, properties, duration)
+    local info = TweenInfo.new(duration or 0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(object, info, properties)
+    tween:Play()
+    return tween
+end
+
 -- External Image Fetcher for Executors
 local function FetchExternalImage(url, fileName)
     local success, asset = pcall(function()
@@ -51,7 +79,7 @@ end
 
 function Library:CreateWindow(config)
     config = config or {}
-    local windowName = config.Name or "Main Interface"
+    local windowName = config.Name or "Natrix Interface"
     local useKeySystem = (config.KeySystem == true)
     local keySettings = config.KeySettings or { Keys = {}, Discord = "" }
 
@@ -70,59 +98,49 @@ function Library:CreateWindow(config)
         Gui = screenGui,
         Tabs = {},
         ActiveTab = nil,
-        MainFrame = nil,
         TabHolder = nil,
         PageHolder = nil
     }
     setmetatable(windowObj, Library)
 
-    -- Base Screen Frame (Overall container)
+    -- Master Container
     local outerContainer = Instance.new("Frame")
     outerContainer.Name = "OuterContainer"
-    outerContainer.Size = UDim2.new(0, 560, 0, 440)
-    outerContainer.Position = UDim2.new(0.5, -280, 0.5, -220)
+    outerContainer.Size = UDim2.new(0, 600, 0, 480)
+    outerContainer.Position = UDim2.new(0.5, -300, 0.5, -240)
     outerContainer.BackgroundTransparency = 1
     outerContainer.Parent = screenGui
 
-    -- 1. Main UI Layout Setup
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Name = "MainFrame"
-    mainFrame.Size = UDim2.new(1, 0, 0, 380)
-    mainFrame.Position = UDim2.new(0, 0, 0, 0)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15) -- Professional Dark Base
-    mainFrame.BorderSizePixel = 0
-    mainFrame.Visible = not useKeySystem
-    mainFrame.Parent = outerContainer
-    createCorner(mainFrame, 6)
-    windowObj.MainFrame = mainFrame
+    -- Main UI Layout Setup (Visible after key system)
+    local mainApp = Instance.new("Frame")
+    mainApp.Name = "MainApp"
+    mainApp.Size = UDim2.new(1, 0, 1, 0)
+    mainApp.BackgroundTransparency = 1
+    mainApp.Visible = not useKeySystem
+    mainApp.Parent = outerContainer
 
-    -- Top Navigation Bar Frame
+    -- 1. Top Navigation Bar (Separated for the gap)
     local topBar = Instance.new("Frame")
     topBar.Name = "TopBar"
-    topBar.Size = UDim2.new(1, 0, 0, 40)
-    topBar.BackgroundColor3 = Color3.fromRGB(17, 17, 17)
+    topBar.Size = UDim2.new(1, 0, 0, 44)
+    topBar.BackgroundColor3 = Theme.Background
     topBar.BorderSizePixel = 0
-    topBar.Parent = mainFrame
-    createCorner(topBar, 6)
+    topBar.Parent = mainApp
+    createCorner(topBar, 8)
+    createStroke(topBar, Theme.Stroke)
 
-    -- Make ONLY TopBar Draggable (Fixes Slider Drag Bug)
+    -- Strict TopBar Dragging Logic
     local dragging, dragInput, dragStart, startPos
     topBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = outerContainer.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
         end
     end)
     topBar.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
     end)
     UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
@@ -146,87 +164,96 @@ function Library:CreateWindow(config)
 
     windowObj.TabHolder = tabListContainer
 
-    -- Close Button (Strict X)
+    -- Strict X Close Button
     local closeBtn = Instance.new("TextButton")
     closeBtn.Name = "CloseBtn"
-    closeBtn.Size = UDim2.new(0, 24, 0, 24)
-    closeBtn.Position = UDim2.new(1, -34, 0.5, -12)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(24, 24, 24)
+    closeBtn.Size = UDim2.new(0, 26, 0, 26)
+    closeBtn.Position = UDim2.new(1, -34, 0.5, -13)
+    closeBtn.BackgroundColor3 = Theme.Surface
     closeBtn.Text = "X"
-    closeBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+    closeBtn.TextColor3 = Theme.SubText
     closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.TextSize = 12
+    closeBtn.TextSize = 11
     closeBtn.Parent = topBar
-    createCorner(closeBtn, 4)
+    createCorner(closeBtn, 6)
+    createStroke(closeBtn, Theme.Stroke)
 
-    closeBtn.MouseEnter:Connect(function() TweenService:Create(closeBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(220, 60, 60), TextColor3 = Color3.fromRGB(255,255,255)}):Play() end)
-    closeBtn.MouseLeave:Connect(function() TweenService:Create(closeBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(24, 24, 24), TextColor3 = Color3.fromRGB(180,180,180)}):Play() end)
+    closeBtn.MouseEnter:Connect(function() animate(closeBtn, {BackgroundColor3 = Theme.Danger, TextColor3 = Theme.Accent}) end)
+    closeBtn.MouseLeave:Connect(function() animate(closeBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Theme.SubText}) end)
     closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 
-    -- Main Split Content Area
+    -- 2. The Upper Gap & Content Area
     local contentArea = Instance.new("Frame")
     contentArea.Name = "ContentArea"
-    contentArea.Size = UDim2.new(1, -16, 1, -52)
-    contentArea.Position = UDim2.new(0, 8, 0, 46)
-    contentArea.BackgroundTransparency = 1
-    contentArea.Parent = mainFrame
+    -- Note the position leaves a distinct 10px gap below the top bar
+    contentArea.Size = UDim2.new(1, 0, 1, -110) 
+    contentArea.Position = UDim2.new(0, 0, 0, 54) 
+    contentArea.BackgroundColor3 = Theme.Background
+    contentArea.BorderSizePixel = 0
+    contentArea.Parent = mainApp
+    createCorner(contentArea, 8)
+    createStroke(contentArea, Theme.Stroke)
     windowObj.PageHolder = contentArea
 
-    -- Bottom Status Bar Frame
+    -- 3. Bottom Status Bar (Separated with gap)
     local bottomBar = Instance.new("Frame")
     bottomBar.Name = "BottomBar"
-    bottomBar.Size = UDim2.new(1, 0, 0, 42)
-    bottomBar.Position = UDim2.new(0, 0, 0, 390)
-    bottomBar.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    bottomBar.Visible = not useKeySystem
-    bottomBar.Parent = outerContainer
-    createCorner(bottomBar, 6)
+    bottomBar.Size = UDim2.new(1, 0, 0, 46)
+    bottomBar.Position = UDim2.new(0, 0, 1, -46)
+    bottomBar.BackgroundColor3 = Theme.Background
+    bottomBar.Parent = mainApp
+    createCorner(bottomBar, 8)
+    createStroke(bottomBar, Theme.Stroke)
     createPadding(bottomBar, 6, 6, 8, 8)
 
-    -- FPS Indicator Tag
-    local fpsTag = Instance.new("Frame")
-    fpsTag.Size = UDim2.new(0, 105, 1, 0)
-    fpsTag.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    fpsTag.Parent = bottomBar
-    createCorner(fpsTag, 4)
+    -- Status Tag Helper
+    local function createStatusTag(parent, iconUrl, labelText, xOffset, width)
+        local tag = Instance.new("Frame")
+        tag.Size = UDim2.new(0, width, 1, 0)
+        tag.Position = UDim2.new(0, xOffset, 0, 0)
+        tag.BackgroundColor3 = Theme.Surface
+        tag.Parent = parent
+        createCorner(tag, 6)
+        createStroke(tag, Theme.Stroke)
 
-    local fpsLabel = Instance.new("TextLabel")
-    fpsLabel.Size = UDim2.new(1, 0, 1, 0)
-    fpsLabel.BackgroundTransparency = 1
-    fpsLabel.Text = "⚡ FPS: --"
-    fpsLabel.TextColor3 = Color3.fromRGB(240, 180, 50)
-    fpsLabel.Font = Enum.Font.GothamBold
-    fpsLabel.TextSize = 12
-    fpsLabel.Parent = fpsTag
+        local icon = Instance.new("ImageLabel")
+        icon.Size = UDim2.new(0, 16, 0, 16)
+        icon.Position = UDim2.new(0, 10, 0.5, -8)
+        icon.BackgroundTransparency = 1
+        icon.Image = FetchExternalImage(iconUrl, labelText .. "_icon.png")
+        icon.Parent = tag
 
-    -- PING Indicator Tag
-    local pingTag = Instance.new("Frame")
-    pingTag.Size = UDim2.new(0, 115, 1, 0)
-    pingTag.Position = UDim2.new(0, 113, 0, 0)
-    pingTag.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    pingTag.Parent = bottomBar
-    createCorner(pingTag, 4)
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, -34, 1, 0)
+        label.Position = UDim2.new(0, 32, 0, 0)
+        label.BackgroundTransparency = 1
+        label.Text = labelText .. ": --"
+        label.TextColor3 = Theme.SubText
+        label.Font = Enum.Font.GothamMedium
+        label.TextSize = 12
+        label.TextXAlignment = Enum.TextXAlignment.Left
+        label.Parent = tag
 
-    local pingLabel = Instance.new("TextLabel")
-    pingLabel.Size = UDim2.new(1, 0, 1, 0)
-    pingLabel.BackgroundTransparency = 1
-    pingLabel.Text = "📡 PING: --"
-    pingLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-    pingLabel.Font = Enum.Font.GothamBold
-    pingLabel.TextSize = 12
-    pingLabel.Parent = pingTag
+        return label
+    end
+
+    -- Create custom icon tags using your URLs
+    local fpsLabel = createStatusTag(bottomBar, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/speed.png?raw=true", "FPS", 0, 105)
+    local pingLabel = createStatusTag(bottomBar, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/network.png?raw=true", "PING", 113, 115)
 
     -- Settings Gear Icon (Right aligned)
-    local settingsBtn = Instance.new("TextButton")
-    settingsBtn.Size = UDim2.new(0, 30, 0, 30)
-    settingsBtn.Position = UDim2.new(1, -30, 0, 0)
-    settingsBtn.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
-    settingsBtn.Text = "⚙"
-    settingsBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
-    settingsBtn.Font = Enum.Font.GothamBold
-    settingsBtn.TextSize = 16
+    local settingsBtn = Instance.new("ImageButton")
+    settingsBtn.Size = UDim2.new(0, 32, 0, 32)
+    settingsBtn.Position = UDim2.new(1, -32, 0.5, -16)
+    settingsBtn.BackgroundColor3 = Theme.Surface
+    settingsBtn.Image = FetchExternalImage("https://github.com/ntxcrim69/NatrixLibrary/blob/main/gear.png?raw=true", "gear_icon.png")
+    settingsBtn.ImageColor3 = Theme.SubText
     settingsBtn.Parent = bottomBar
-    createCorner(settingsBtn, 4)
+    createCorner(settingsBtn, 6)
+    createStroke(settingsBtn, Theme.Stroke)
+
+    settingsBtn.MouseEnter:Connect(function() animate(settingsBtn, {BackgroundColor3 = Theme.SurfaceElevated, ImageColor3 = Theme.Accent}) end)
+    settingsBtn.MouseLeave:Connect(function() animate(settingsBtn, {BackgroundColor3 = Theme.Surface, ImageColor3 = Theme.SubText}) end)
 
     -- Live Stats Logic Loops
     local frameCount = 0
@@ -234,7 +261,7 @@ function Library:CreateWindow(config)
     RunService.RenderStepped:Connect(function()
         frameCount = frameCount + 1
         if tick() - lastTick >= 1 then
-            fpsLabel.Text = "⚡ FPS: " .. tostring(frameCount)
+            fpsLabel.Text = "FPS: " .. tostring(frameCount)
             frameCount = 0
             lastTick = tick()
         end
@@ -244,23 +271,24 @@ function Library:CreateWindow(config)
         while task.wait(1) do
             local success, pingVal = pcall(function() return math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue()) end)
             if success then
-                pingLabel.Text = "📡 PING: " .. tostring(pingVal)
+                pingLabel.Text = "PING: " .. tostring(pingVal)
             end
         end
     end)
 
-    -- 2. Key System Handling (If enabled)
+    -- 4. Key System Overlay (If enabled)
     if useKeySystem then
         local keyModal = Instance.new("Frame")
         keyModal.Name = "KeyModal"
-        keyModal.Size = UDim2.new(0, 420, 0, 300)
-        keyModal.Position = UDim2.new(0.5, -210, 0.5, -150)
-        keyModal.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+        keyModal.Size = UDim2.new(0, 440, 0, 320)
+        keyModal.Position = UDim2.new(0.5, -220, 0.5, -160)
+        keyModal.BackgroundColor3 = Theme.Background
         keyModal.BorderSizePixel = 0
         keyModal.Parent = outerContainer
-        createCorner(keyModal, 8)
+        createCorner(keyModal, 10)
+        createStroke(keyModal, Theme.Stroke)
 
-        -- Draggable Key Window
+        -- Draggable Modal
         local kDragging, kDragInput, kDragStart, kStartPos
         keyModal.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -278,22 +306,22 @@ function Library:CreateWindow(config)
             end
         end)
 
-        -- Discord Icon Top Right
+        -- Discord Icon
         local discordBtn = Instance.new("ImageButton")
         discordBtn.Size = UDim2.new(0, 24, 0, 24)
-        discordBtn.Position = UDim2.new(1, -34, 0, 10)
+        discordBtn.Position = UDim2.new(1, -36, 0, 12)
         discordBtn.BackgroundTransparency = 1
         discordBtn.Image = FetchExternalImage("https://github.com/ntxcrim69/NatrixLibrary/blob/main/discord.png?raw=true", "NatrixDiscord.png")
         discordBtn.Parent = keyModal
-
-        discordBtn.MouseButton1Click:Connect(function()
-            if setclipboard and keySettings.Discord then setclipboard(keySettings.Discord) end
-        end)
+        
+        discordBtn.MouseEnter:Connect(function() animate(discordBtn, {Size = UDim2.new(0, 26, 0, 26), Position = UDim2.new(1, -37, 0, 11)}) end)
+        discordBtn.MouseLeave:Connect(function() animate(discordBtn, {Size = UDim2.new(0, 24, 0, 24), Position = UDim2.new(1, -36, 0, 12)}) end)
+        discordBtn.MouseButton1Click:Connect(function() if setclipboard and keySettings.Discord then setclipboard(keySettings.Discord) end end)
 
         -- Center Main Logo
         local logoLabel = Instance.new("ImageLabel")
-        logoLabel.Size = UDim2.new(0, 90, 0, 90)
-        logoLabel.Position = UDim2.new(0.5, -45, 0.12, 0)
+        logoLabel.Size = UDim2.new(0, 100, 0, 100)
+        logoLabel.Position = UDim2.new(0.5, -50, 0.1, 0)
         logoLabel.BackgroundTransparency = 1
         logoLabel.Image = FetchExternalImage("https://github.com/ntxcrim69/NatrixLibrary/blob/main/Natrixlogo.png?raw=true", "NatrixLogo.png")
         logoLabel.ScaleType = Enum.ScaleType.Fit
@@ -301,32 +329,34 @@ function Library:CreateWindow(config)
 
         -- Dark Key TextBox
         local keyInput = Instance.new("TextBox")
-        keyInput.Size = UDim2.new(0, 280, 0, 42)
-        keyInput.Position = UDim2.new(0.5, -140, 0.52, 0)
-        keyInput.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-        keyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-        keyInput.PlaceholderText = "Key"
-        keyInput.PlaceholderColor3 = Color3.fromRGB(100, 100, 100)
+        keyInput.Size = UDim2.new(0, 300, 0, 46)
+        keyInput.Position = UDim2.new(0.5, -150, 0.52, 0)
+        keyInput.BackgroundColor3 = Theme.Surface
+        keyInput.TextColor3 = Theme.Accent
+        keyInput.PlaceholderText = "Enter Authentication Key"
+        keyInput.PlaceholderColor3 = Theme.SubText
         keyInput.Text = ""
-        keyInput.Font = Enum.Font.Gotham
-        keyInput.TextSize = 14
+        keyInput.Font = Enum.Font.GothamMedium
+        keyInput.TextSize = 13
         keyInput.Parent = keyModal
-        createCorner(keyInput, 6)
+        createCorner(keyInput, 8)
+        createStroke(keyInput, Theme.Stroke)
 
-        -- Rounded "Check" Button
+        -- Verify Button
         local checkBtn = Instance.new("TextButton")
-        checkBtn.Size = UDim2.new(0, 120, 0, 38)
-        checkBtn.Position = UDim2.new(0.5, -60, 0.72, 0)
-        checkBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-        checkBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-        checkBtn.Text = "Check"
+        checkBtn.Size = UDim2.new(0, 140, 0, 42)
+        checkBtn.Position = UDim2.new(0.5, -70, 0.72, 0)
+        checkBtn.BackgroundColor3 = Theme.Surface
+        checkBtn.TextColor3 = Theme.Accent
+        checkBtn.Text = "Authenticate"
         checkBtn.Font = Enum.Font.GothamBold
-        checkBtn.TextSize = 14
+        checkBtn.TextSize = 13
         checkBtn.Parent = keyModal
-        createCorner(checkBtn, 6)
+        createCorner(checkBtn, 8)
+        createStroke(checkBtn, Theme.Stroke)
 
-        checkBtn.MouseEnter:Connect(function() TweenService:Create(checkBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(30, 30, 30)}):Play() end)
-        checkBtn.MouseLeave:Connect(function() TweenService:Create(checkBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(20, 20, 20)}):Play() end)
+        checkBtn.MouseEnter:Connect(function() animate(checkBtn, {BackgroundColor3 = Theme.SurfaceElevated}) end)
+        checkBtn.MouseLeave:Connect(function() animate(checkBtn, {BackgroundColor3 = Theme.Surface}) end)
 
         checkBtn.MouseButton1Click:Connect(function()
             local entered = keyInput.Text
@@ -341,16 +371,23 @@ function Library:CreateWindow(config)
             end
 
             if verified then
+                -- Smooth fade out
+                local outTween = TweenService:Create(keyModal, TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -220, 0.45, -160), GroupTransparency = 1})
+                outTween:Play()
+                outTween.Completed:Wait()
                 keyModal:Destroy()
-                mainFrame.Visible = true
-                bottomBar.Visible = true
+                
+                -- Fade in app
+                mainApp.Visible = true
+                mainApp.GroupTransparency = 1
+                TweenService:Create(mainApp, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {GroupTransparency = 0}):Play()
             else
                 keyInput.Text = ""
                 keyInput.PlaceholderText = "Invalid Key!"
-                TweenService:Create(keyInput, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(60, 20, 20)}):Play()
+                local errTween = animate(keyInput, {BackgroundColor3 = Theme.Danger})
                 task.wait(1)
-                TweenService:Create(keyInput, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(20, 20, 20)}):Play()
-                keyInput.PlaceholderText = "Key"
+                animate(keyInput, {BackgroundColor3 = Theme.Surface})
+                keyInput.PlaceholderText = "Enter Authentication Key"
             end
         end)
     end
@@ -362,20 +399,19 @@ end
 function Library:CreateTab(tabName)
     local window = self
 
-    -- Tab Button in Top Bar
     local tabBtn = Instance.new("TextButton")
     tabBtn.Name = tabName .. "_Btn"
-    tabBtn.Size = UDim2.new(0, 70, 1, 0)
-    tabBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    tabBtn.Size = UDim2.new(0, 80, 1, 0)
+    tabBtn.BackgroundColor3 = Theme.Surface
     tabBtn.BackgroundTransparency = 1
     tabBtn.Text = tabName
-    tabBtn.TextColor3 = Color3.fromRGB(120, 120, 120)
+    tabBtn.TextColor3 = Theme.SubText
     tabBtn.Font = Enum.Font.GothamBold
     tabBtn.TextSize = 13
     tabBtn.Parent = window.TabHolder
-    createCorner(tabBtn, 4)
+    createCorner(tabBtn, 6)
 
-    -- Content Split Canvas Page
+    -- Split Canvas (Left/Right gap)
     local pageFrame = Instance.new("Frame")
     pageFrame.Name = tabName .. "_Page"
     pageFrame.Size = UDim2.new(1, 0, 1, 0)
@@ -383,32 +419,38 @@ function Library:CreateTab(tabName)
     pageFrame.Visible = false
     pageFrame.Parent = window.PageHolder
 
-    -- Left Column Container (Controls)
     local leftColumn = Instance.new("ScrollingFrame")
     leftColumn.Name = "LeftColumn"
-    leftColumn.Size = UDim2.new(0.49, 0, 1, 0)
-    leftColumn.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+    leftColumn.Size = UDim2.new(0.49, -4, 1, 0)
+    leftColumn.Position = UDim2.new(0, 8, 0, 8)
+    leftColumn.Size = UDim2.new(0.5, -12, 1, -16)
+    leftColumn.BackgroundTransparency = 1
     leftColumn.BorderSizePixel = 0
     leftColumn.ScrollBarThickness = 2
-    leftColumn.ScrollBarImageColor3 = Color3.fromRGB(50, 50, 50)
+    leftColumn.ScrollBarImageColor3 = Theme.Stroke
     leftColumn.Parent = pageFrame
-    createCorner(leftColumn, 6)
-    createPadding(leftColumn, 8, 8, 8, 8)
+    createPadding(leftColumn, 2, 2, 2, 2)
 
     local leftLayout = Instance.new("UIListLayout")
     leftLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    leftLayout.Padding = UDim.new(0, 8)
+    leftLayout.Padding = UDim.new(0, 6)
     leftLayout.Parent = leftColumn
 
-    -- Right Column Container (Sub-Panels)
-    local rightColumn = Instance.new("Frame")
+    local rightColumn = Instance.new("ScrollingFrame")
     rightColumn.Name = "RightColumn"
-    rightColumn.Size = UDim2.new(0.49, 0, 1, 0)
-    rightColumn.Position = UDim2.new(0.51, 0, 0, 0)
-    rightColumn.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
+    rightColumn.Size = UDim2.new(0.5, -12, 1, -16)
+    rightColumn.Position = UDim2.new(0.5, 4, 0, 8)
+    rightColumn.BackgroundTransparency = 1
     rightColumn.BorderSizePixel = 0
+    rightColumn.ScrollBarThickness = 2
+    rightColumn.ScrollBarImageColor3 = Theme.Stroke
     rightColumn.Parent = pageFrame
-    createCorner(rightColumn, 6)
+    createPadding(rightColumn, 2, 2, 2, 2)
+    
+    local rightLayout = Instance.new("UIListLayout")
+    rightLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    rightLayout.Padding = UDim.new(0, 6)
+    rightLayout.Parent = rightColumn
 
     local tabObj = {
         Button = tabBtn,
@@ -423,10 +465,10 @@ function Library:CreateTab(tabName)
     local function selectTab()
         for _, t in ipairs(window.Tabs) do
             t.Page.Visible = false
-            TweenService:Create(t.Button, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(120, 120, 120), BackgroundTransparency = 1}):Play()
+            animate(t.Button, {TextColor3 = Theme.SubText, BackgroundTransparency = 1, Size = UDim2.new(0, 80, 1, 0)})
         end
         pageFrame.Visible = true
-        TweenService:Create(tabBtn, TweenInfo.new(0.2), {TextColor3 = Color3.fromRGB(255, 255, 255), BackgroundTransparency = 0}):Play()
+        animate(tabBtn, {TextColor3 = Theme.Accent, BackgroundTransparency = 0, Size = UDim2.new(0, 90, 1, 0)})
         window.ActiveTab = tabObj
     end
 
@@ -442,18 +484,18 @@ function Tab:CreateToggle(label, defaultState, callback)
     local state = defaultState or false
 
     local toggleFrame = Instance.new("Frame")
-    toggleFrame.Size = UDim2.new(1, 0, 0, 36)
-    toggleFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    toggleFrame.BackgroundTransparency = 1
+    toggleFrame.Size = UDim2.new(1, 0, 0, 42)
+    toggleFrame.BackgroundColor3 = Theme.Surface
     toggleFrame.Parent = self.LeftColumn
-    createCorner(toggleFrame, 4)
-    createPadding(toggleFrame, 0, 0, 4, 8)
+    createCorner(toggleFrame, 6)
+    createStroke(toggleFrame, Theme.Stroke)
+    createPadding(toggleFrame, 0, 0, 4, 12)
 
     local textLabel = Instance.new("TextLabel")
     textLabel.Size = UDim2.new(0.6, 0, 1, 0)
     textLabel.BackgroundTransparency = 1
     textLabel.Text = label
-    textLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    textLabel.TextColor3 = Theme.Text
     textLabel.Font = Enum.Font.GothamMedium
     textLabel.TextSize = 13
     textLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -461,17 +503,18 @@ function Tab:CreateToggle(label, defaultState, callback)
 
     -- Outer Pill Track
     local switchTrack = Instance.new("Frame")
-    switchTrack.Size = UDim2.new(0, 38, 0, 18)
-    switchTrack.Position = UDim2.new(1, -38, 0.5, -9)
-    switchTrack.BackgroundColor3 = state and Color3.fromRGB(220, 220, 220) or Color3.fromRGB(35, 35, 35)
+    switchTrack.Size = UDim2.new(0, 40, 0, 20)
+    switchTrack.Position = UDim2.new(1, -44, 0.5, -10)
+    switchTrack.BackgroundColor3 = state and Theme.Accent or Theme.Background
     switchTrack.Parent = toggleFrame
-    createCorner(switchTrack, 18)
+    createCorner(switchTrack, 20)
+    local trackStroke = createStroke(switchTrack, Theme.Stroke)
 
     -- Inner Indicator Knob
     local switchKnob = Instance.new("Frame")
     switchKnob.Size = UDim2.new(0, 14, 0, 14)
-    switchKnob.Position = state and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7)
-    switchKnob.BackgroundColor3 = state and Color3.fromRGB(30, 30, 30) or Color3.fromRGB(220, 220, 220)
+    switchKnob.Position = state and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7)
+    switchKnob.BackgroundColor3 = state and Theme.Background or Theme.SubText
     switchKnob.Parent = switchTrack
     createCorner(switchKnob, 14)
 
@@ -483,11 +526,12 @@ function Tab:CreateToggle(label, defaultState, callback)
 
     interactBtn.MouseButton1Click:Connect(function()
         state = not state
-        TweenService:Create(switchTrack, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {BackgroundColor3 = state and Color3.fromRGB(220, 220, 220) or Color3.fromRGB(35, 35, 35)}):Play()
-        TweenService:Create(switchKnob, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {
-            Position = state and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7),
-            BackgroundColor3 = state and Color3.fromRGB(30, 30, 30) or Color3.fromRGB(220, 220, 220)
-        }):Play()
+        trackStroke.Color = state and Theme.Accent or Theme.Stroke
+        animate(switchTrack, {BackgroundColor3 = state and Theme.Accent or Theme.Background})
+        animate(switchKnob, {
+            Position = state and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7),
+            BackgroundColor3 = state and Theme.Background or Theme.SubText
+        })
         task.spawn(callback, state)
     end)
 end
@@ -498,49 +542,49 @@ function Tab:CreateKeybindButton(label, defaultKey, callback)
     local currentKey = defaultKey or Enum.KeyCode.E
 
     local containerFrame = Instance.new("Frame")
-    containerFrame.Size = UDim2.new(1, 0, 0, 36)
-    containerFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    containerFrame.BackgroundTransparency = 1
+    containerFrame.Size = UDim2.new(1, 0, 0, 42)
+    containerFrame.BackgroundColor3 = Theme.Surface
     containerFrame.Parent = self.LeftColumn
-    createCorner(containerFrame, 4)
-    createPadding(containerFrame, 0, 0, 4, 8)
+    createCorner(containerFrame, 6)
+    createStroke(containerFrame, Theme.Stroke)
+    createPadding(containerFrame, 0, 0, 4, 12)
 
     local textLabel = Instance.new("TextLabel")
     textLabel.Size = UDim2.new(0.4, 0, 1, 0)
     textLabel.BackgroundTransparency = 1
     textLabel.Text = label
-    textLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    textLabel.TextColor3 = Theme.Text
     textLabel.Font = Enum.Font.GothamMedium
     textLabel.TextSize = 13
     textLabel.TextXAlignment = Enum.TextXAlignment.Left
     textLabel.Parent = containerFrame
 
-    -- Keybind Selector Box
     local keybindBtn = Instance.new("TextButton")
-    keybindBtn.Size = UDim2.new(0, 32, 0, 22)
-    keybindBtn.Position = UDim2.new(1, -85, 0.5, -11)
-    keybindBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    keybindBtn.Text = "⌨️"
-    keybindBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+    keybindBtn.Size = UDim2.new(0, 40, 0, 24)
+    keybindBtn.Position = UDim2.new(1, -100, 0.5, -12)
+    keybindBtn.BackgroundColor3 = Theme.Background
+    keybindBtn.Text = currentKey.Name
+    keybindBtn.TextColor3 = Theme.SubText
     keybindBtn.Font = Enum.Font.Gotham
     keybindBtn.TextSize = 11
     keybindBtn.Parent = containerFrame
-    createCorner(keybindBtn, 4)
+    createCorner(keybindBtn, 6)
+    createStroke(keybindBtn, Theme.Stroke)
 
-    -- Apply Action Button
     local applyBtn = Instance.new("TextButton")
-    applyBtn.Size = UDim2.new(0, 48, 0, 22)
-    applyBtn.Position = UDim2.new(1, -48, 0.5, -11)
-    applyBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    applyBtn.Size = UDim2.new(0, 52, 0, 24)
+    applyBtn.Position = UDim2.new(1, -52, 0.5, -12)
+    applyBtn.BackgroundColor3 = Theme.SurfaceElevated
     applyBtn.Text = "Apply"
-    applyBtn.TextColor3 = Color3.fromRGB(220, 220, 220)
-    applyBtn.Font = Enum.Font.Gotham
+    applyBtn.TextColor3 = Theme.Accent
+    applyBtn.Font = Enum.Font.GothamMedium
     applyBtn.TextSize = 11
     applyBtn.Parent = containerFrame
-    createCorner(applyBtn, 4)
+    createCorner(applyBtn, 6)
+    createStroke(applyBtn, Theme.Stroke)
 
-    applyBtn.MouseEnter:Connect(function() TweenService:Create(applyBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(45, 45, 45)}):Play() end)
-    applyBtn.MouseLeave:Connect(function() TweenService:Create(applyBtn, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(30, 30, 30)}):Play() end)
+    applyBtn.MouseEnter:Connect(function() animate(applyBtn, {BackgroundColor3 = Theme.Stroke}) end)
+    applyBtn.MouseLeave:Connect(function() animate(applyBtn, {BackgroundColor3 = Theme.SurfaceElevated}) end)
 
     local binding = false
     keybindBtn.MouseButton1Click:Connect(function()
@@ -570,51 +614,49 @@ function Tab:CreateSlider(label, min, max, defaultVal, callback)
     defaultVal = math.clamp(defaultVal or min, min, max)
 
     local sliderFrame = Instance.new("Frame")
-    sliderFrame.Size = UDim2.new(1, 0, 0, 40)
-    sliderFrame.BackgroundColor3 = Color3.fromRGB(15, 15, 15)
-    sliderFrame.BackgroundTransparency = 1
+    sliderFrame.Size = UDim2.new(1, 0, 0, 46)
+    sliderFrame.BackgroundColor3 = Theme.Surface
     sliderFrame.Parent = self.LeftColumn
-    createCorner(sliderFrame, 4)
-    createPadding(sliderFrame, 0, 0, 4, 8)
+    createCorner(sliderFrame, 6)
+    createStroke(sliderFrame, Theme.Stroke)
+    createPadding(sliderFrame, 0, 0, 4, 12)
 
     local textLabel = Instance.new("TextLabel")
     textLabel.Size = UDim2.new(0.35, 0, 1, 0)
     textLabel.BackgroundTransparency = 1
     textLabel.Text = label
-    textLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+    textLabel.TextColor3 = Theme.Text
     textLabel.Font = Enum.Font.GothamMedium
     textLabel.TextSize = 13
     textLabel.TextXAlignment = Enum.TextXAlignment.Left
     textLabel.Parent = sliderFrame
 
-    -- Slider Track Bar
     local track = Instance.new("Frame")
-    track.Size = UDim2.new(0, 115, 0, 12)
-    track.Position = UDim2.new(1, -145, 0.5, -6)
-    track.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    track.Size = UDim2.new(0, 120, 0, 10)
+    track.Position = UDim2.new(1, -155, 0.5, -5)
+    track.BackgroundColor3 = Theme.Background
     track.Parent = sliderFrame
-    createCorner(track, 6)
+    createCorner(track, 10)
+    createStroke(track, Theme.Stroke)
 
     local initialPercent = (defaultVal - min) / (max - min)
 
     local fill = Instance.new("Frame")
     fill.Size = UDim2.new(initialPercent, 0, 1, 0)
-    fill.BackgroundColor3 = Color3.fromRGB(200, 200, 200)
+    fill.BackgroundColor3 = Theme.Accent
     fill.Parent = track
-    createCorner(fill, 6)
+    createCorner(fill, 10)
 
-    -- Dynamic Value Label
     local valueLabel = Instance.new("TextLabel")
-    valueLabel.Size = UDim2.new(0, 24, 1, 0)
-    valueLabel.Position = UDim2.new(1, -24, 0, 0)
+    valueLabel.Size = UDim2.new(0, 26, 1, 0)
+    valueLabel.Position = UDim2.new(1, -26, 0, 0)
     valueLabel.BackgroundTransparency = 1
     valueLabel.Text = tostring(defaultVal)
-    valueLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+    valueLabel.TextColor3 = Theme.SubText
     valueLabel.Font = Enum.Font.Gotham
     valueLabel.TextSize = 12
     valueLabel.Parent = sliderFrame
 
-    -- Dragging Interaction Logic (Fixed logic so window doesn't move)
     local dragging = false
     local function updateValue(input)
         local mousePos = input.Position.X
@@ -622,7 +664,7 @@ function Tab:CreateSlider(label, min, max, defaultVal, callback)
         local trackSize = track.AbsoluteSize.X
         local percent = math.clamp((mousePos - trackPos) / trackSize, 0, 1)
         local val = math.floor(min + (max - min) * percent)
-        fill.Size = UDim2.new(percent, 0, 1, 0)
+        animate(fill, {Size = UDim2.new(percent, 0, 1, 0)}, 0.1)
         valueLabel.Text = tostring(val)
         task.spawn(callback, val)
     end
