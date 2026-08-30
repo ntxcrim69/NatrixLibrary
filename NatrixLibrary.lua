@@ -1,6 +1,6 @@
 --[[
     Premium Roblox UI Library Wrapper - "Natrix Pro"
-    Advanced modern GUI with customizable menu toggle keybind, settings overlay menu, and a draggable top HUD FPS/Ping display.
+    Advanced modern GUI with persistent configuration saving across game injections, customizable menu toggle keybind, and draggable top HUD.
 ]]
 
 local Library = {}
@@ -16,7 +16,39 @@ local Stats = game:GetService("Stats")
 local TweenService = game:GetService("TweenService")
 local CoreGui = game:GetService("CoreGui")
 local Players = game:GetService("Players")
+local HttpService = game:GetService("HttpService")
 local LocalPlayer = Players.LocalPlayer
+
+-- Configuration File Persistence System
+local ConfigFileName = "NatrixPro_Config.json"
+local Config = {
+    FPSCounterEnabled = false,
+    ToggleKey = "RightShift"
+}
+
+local function SaveConfig()
+    local success, encoded = pcall(function()
+        return HttpService:JSONEncode(Config)
+    end)
+    if success and writefile then
+        writefile(ConfigFileName, encoded)
+    end
+end
+
+local function LoadConfig()
+    if isfile and isfile(ConfigFileName) then
+        local success, decoded = pcall(function()
+            return HttpService:JSONDecode(readfile(ConfigFileName))
+        end)
+        if success and type(decoded) == "table" then
+            for k, v in pairs(decoded) do
+                Config[k] = v
+            end
+        end
+    end
+end
+
+LoadConfig()
 
 -- Design System Constants
 local Theme = {
@@ -151,8 +183,8 @@ function Library:CreateWindow(config)
     outerContainer.ZIndex = 1
     outerContainer.Parent = screenGui
 
-    -- Configurable Menu Toggle Key
-    local currentToggleKey = Enum.KeyCode.RightShift
+    -- Configurable Menu Toggle Key (Loaded from Config)
+    local currentToggleKey = Enum.KeyCode[Config.ToggleKey] or Enum.KeyCode.RightShift
 
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if input.KeyCode == currentToggleKey then
@@ -166,7 +198,7 @@ function Library:CreateWindow(config)
     topMiddleHud.Size = UDim2.new(0, 230, 0, 32)
     topMiddleHud.Position = UDim2.new(0.5, -115, 0, 10)
     topMiddleHud.BackgroundColor3 = Theme.Surface
-    topMiddleHud.Visible = false
+    topMiddleHud.Visible = Config.FPSCounterEnabled
     topMiddleHud.ZIndex = 50
     topMiddleHud.Parent = screenGui
     createCorner(topMiddleHud, 6)
@@ -330,16 +362,16 @@ function Library:CreateWindow(config)
     local stTrack = Instance.new("Frame")
     stTrack.Size = UDim2.new(0, 40, 0, 20)
     stTrack.Position = UDim2.new(1, -44, 0.5, -10)
-    stTrack.BackgroundColor3 = Theme.Background
+    stTrack.BackgroundColor3 = Config.FPSCounterEnabled and Theme.Accent or Theme.Background
     stTrack.ZIndex = 12
     stTrack.Parent = settingsToggleFrame
     createCorner(stTrack, 20)
-    local stTrackStroke = createStroke(stTrack, Theme.Stroke)
+    local stTrackStroke = createStroke(stTrack, Config.FPSCounterEnabled and Theme.Accent or Theme.Stroke)
 
     local stKnob = Instance.new("Frame")
     stKnob.Size = UDim2.new(0, 14, 0, 14)
-    stKnob.Position = UDim2.new(0, 3, 0.5, -7)
-    stKnob.BackgroundColor3 = Theme.SubText
+    stKnob.Position = Config.FPSCounterEnabled and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7)
+    stKnob.BackgroundColor3 = Config.FPSCounterEnabled and Theme.Background or Theme.SubText
     stKnob.ZIndex = 13
     stKnob.Parent = stTrack
     createCorner(stKnob, 14)
@@ -351,16 +383,16 @@ function Library:CreateWindow(config)
     stBtn.ZIndex = 14
     stBtn.Parent = settingsToggleFrame
 
-    local fpsPingEnabled = false
     stBtn.MouseButton1Click:Connect(function()
-        fpsPingEnabled = not fpsPingEnabled
-        topMiddleHud.Visible = fpsPingEnabled
-        stTrackStroke.Color = fpsPingEnabled and Theme.Accent or Theme.Stroke
-        animate(stTrack, {BackgroundColor3 = fpsPingEnabled and Theme.Accent or Theme.Background})
+        Config.FPSCounterEnabled = not Config.FPSCounterEnabled
+        topMiddleHud.Visible = Config.FPSCounterEnabled
+        stTrackStroke.Color = Config.FPSCounterEnabled and Theme.Accent or Theme.Stroke
+        animate(stTrack, {BackgroundColor3 = Config.FPSCounterEnabled and Theme.Accent or Theme.Background})
         animate(stKnob, {
-            Position = fpsPingEnabled and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7),
-            BackgroundColor3 = fpsPingEnabled and Theme.Background or Theme.SubText
+            Position = Config.FPSCounterEnabled and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7),
+            BackgroundColor3 = Config.FPSCounterEnabled and Theme.Background or Theme.SubText
         })
+        SaveConfig()
     end)
 
     -- Settings Menu Row: Menu Hide Keybind
@@ -407,8 +439,10 @@ function Library:CreateWindow(config)
         connection = UserInputService.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.Keyboard then
                 currentToggleKey = input.KeyCode
+                Config.ToggleKey = currentToggleKey.Name
                 skBtn.Text = currentToggleKey.Name
                 skBinding = false
+                SaveConfig()
                 connection:Disconnect()
             end
         end)
