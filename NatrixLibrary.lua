@@ -966,7 +966,7 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
     local actionBtn = Instance.new("TextButton")
     actionBtn.Size = UDim2.new(0, actionBtnWidth, 0, 24)
     actionBtn.Position = UDim2.new(1, -actionBtnWidth, 0.5, -12)
-    actionBtn.BackgroundColor3 = Theme.SurfaceElevated
+    actionBtn.BackgroundColor3 = Theme.Background
     actionBtn.Text = buttonText
     actionBtn.TextColor3 = Theme.Accent
     actionBtn.Font = Enum.Font.GothamMedium
@@ -976,8 +976,8 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
     createCorner(actionBtn, 6)
     createStroke(actionBtn, Theme.Stroke)
 
-    actionBtn.MouseEnter:Connect(function() animate(actionBtn, {BackgroundColor3 = Theme.Stroke}) end)
-    actionBtn.MouseLeave:Connect(function() animate(actionBtn, {BackgroundColor3 = Theme.SurfaceElevated}) end)
+    actionBtn.MouseEnter:Connect(function() animate(actionBtn, {BackgroundColor3 = Theme.Surface}) end)
+    actionBtn.MouseLeave:Connect(function() animate(actionBtn, {BackgroundColor3 = Theme.Background}) end)
 
     actionBtn.MouseButton1Click:Connect(function()
         task.spawn(callback, currentKey)
