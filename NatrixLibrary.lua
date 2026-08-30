@@ -241,7 +241,7 @@ function Library:CreateWindow(config)
     local hudPing = createStatusTag(topMiddleHud, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/network.png", "PING_icon.png", "PING", 115, 115)
 
     -- Main UI Layout Setup
-    local mainApp = Instance.new("CanvasGroup")
+    local mainApp = Instance.new("Frame")
     mainApp.Name = "MainApp"
     mainApp.Size = UDim2.new(1, 0, 1, 0)
     mainApp.BackgroundTransparency = 1
@@ -254,7 +254,7 @@ function Library:CreateWindow(config)
     bgImage.Size = UDim2.new(1, 0, 1, 0)
     bgImage.BackgroundTransparency = 1
     bgImage.ScaleType = Enum.ScaleType.Crop
-    bgImage.ZIndex = 1
+    bgImage.ZIndex = 0
     bgImage.Parent = outerContainer
     createCorner(bgImage, 8)
 
@@ -797,8 +797,6 @@ function Library:CreateWindow(config)
                 keyModal:Destroy()
                 
                 mainApp.Visible = true
-                mainApp.GroupTransparency = 1
-                TweenService:Create(mainApp, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {GroupTransparency = 0}):Play()
             else
                 keyInput.Text = ""
                 keyInput.PlaceholderText = "Invalid Key!"
