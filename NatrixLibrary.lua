@@ -79,6 +79,35 @@ local function FetchExternalImage(url, fileName)
     return success and asset or ""
 end
 
+-- Unified Status Tag Creator (Ensures Top HUD and Bottom Bar are 100% identical)
+local function createStatusTag(parent, iconUrl, fileName, labelText, xOffset, width)
+    local tag = Instance.new("Frame")
+    tag.Size = UDim2.new(0, width, 1, 0)
+    tag.Position = UDim2.new(0, xOffset, 0, 0)
+    tag.BackgroundTransparency = 1
+    tag.Parent = parent
+
+    local icon = Instance.new("ImageLabel")
+    icon.Size = UDim2.new(0, 16, 0, 16)
+    icon.Position = UDim2.new(0, 12, 0.5, -8)
+    icon.BackgroundTransparency = 1
+    icon.Image = FetchExternalImage(iconUrl, fileName)
+    icon.Parent = tag
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -36, 1, 0)
+    label.Position = UDim2.new(0, 36, 0, 0)
+    label.BackgroundTransparency = 1
+    label.Text = labelText .. ": --"
+    label.TextColor3 = Theme.SubText
+    label.Font = Enum.Font.GothamMedium
+    label.TextSize = 12
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.Parent = tag
+
+    return label
+end
+
 function Library:CreateWindow(config)
     config = config or {}
     local windowName = config.Name or "Natrix Interface"
@@ -123,11 +152,11 @@ function Library:CreateWindow(config)
         end
     end)
 
-    -- Top Middle Flush HUD Overlay (Draggable with Icons & Accurate Stats)
+    -- Top Middle Flush HUD Overlay
     local topMiddleHud = Instance.new("Frame")
     topMiddleHud.Name = "TopMiddleHud"
-    topMiddleHud.Size = UDim2.new(0, 220, 0, 32)
-    topMiddleHud.Position = UDim2.new(0.5, -110, 0, 10)
+    topMiddleHud.Size = UDim2.new(0, 230, 0, 32)
+    topMiddleHud.Position = UDim2.new(0.5, -115, 0, 10)
     topMiddleHud.BackgroundColor3 = Theme.Surface
     topMiddleHud.Visible = false
     topMiddleHud.ZIndex = 10
@@ -157,27 +186,9 @@ function Library:CreateWindow(config)
         end
     end)
 
-    -- Top HUD FPS Section
-    local hudFpsIcon = Instance.new("ImageLabel")
-    hudFpsIcon.Size = UDim2.new(0, 16, 0, 16)
-    hudFpsIcon.Position = UDim2.new(0, 8, 0.5, -8)
-    hudFpsIcon.BackgroundTransparency = 1
-    hudFpsIcon.Image = FetchExternalImage("https://github.com/ntxcrim69/NatrixLibrary/blob/main/speed.png?raw=true", "speed_hud.png")
-    hudFpsIcon.ZIndex = 11
-    hudFpsIcon.Parent = topMiddleHud
-
-    local hudFps = Instance.new("TextLabel")
-    hudFps.Size = UDim2.new(0.5, -28, 1, 0)
-    hudFps.Position = UDim2.new(0, 28, 0, 0)
-    hudFps.BackgroundTransparency = 1
-    hudFps.TextColor3 = Theme.SubText
-    hudFps.Font = Enum.Font.GothamMedium
-    hudFps.TextSize = 12
-    hudFps.TextXAlignment = Enum.TextXAlignment.Left
-    hudFps.Text = "FPS: --"
-    hudFps.ZIndex = 11
-    hudFps.Parent = topMiddleHud
-
+    -- HUD Items Built with Unified Function
+    local hudFps = createStatusTag(topMiddleHud, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/speed.png?raw=true", "FPS_icon.png", "FPS", 0, 115)
+    
     local hudDivider = Instance.new("Frame")
     hudDivider.Size = UDim2.new(0, 1, 0.6, 0)
     hudDivider.Position = UDim2.new(0.5, 0, 0.2, 0)
@@ -186,26 +197,7 @@ function Library:CreateWindow(config)
     hudDivider.ZIndex = 11
     hudDivider.Parent = topMiddleHud
 
-    -- Top HUD Ping Section
-    local hudPingIcon = Instance.new("ImageLabel")
-    hudPingIcon.Size = UDim2.new(0, 16, 0, 16)
-    hudPingIcon.Position = UDim2.new(0.5, 10, 0.5, -8)
-    hudPingIcon.BackgroundTransparency = 1
-    hudPingIcon.Image = FetchExternalImage("https://github.com/ntxcrim69/NatrixLibrary/blob/main/network.png?raw=true", "network_hud.png")
-    hudPingIcon.ZIndex = 11
-    hudPingIcon.Parent = topMiddleHud
-
-    local hudPing = Instance.new("TextLabel")
-    hudPing.Size = UDim2.new(0.5, -30, 1, 0)
-    hudPing.Position = UDim2.new(0.5, 30, 0, 0)
-    hudPing.BackgroundTransparency = 1
-    hudPing.TextColor3 = Theme.SubText
-    hudPing.Font = Enum.Font.GothamMedium
-    hudPing.TextSize = 12
-    hudPing.TextXAlignment = Enum.TextXAlignment.Left
-    hudPing.Text = "PING: --"
-    hudPing.ZIndex = 11
-    hudPing.Parent = topMiddleHud
+    local hudPing = createStatusTag(topMiddleHud, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/network.png?raw=true", "PING_icon.png", "PING", 115, 115)
 
     -- Main UI Layout Setup
     local mainApp = Instance.new("CanvasGroup")
@@ -438,39 +430,26 @@ function Library:CreateWindow(config)
     createStroke(bottomBar, Theme.Stroke)
     createPadding(bottomBar, 6, 6, 8, 8)
 
-    -- Status Tag Helper
-    local function createStatusTag(parent, iconUrl, labelText, xOffset, width)
-        local tag = Instance.new("Frame")
-        tag.Size = UDim2.new(0, width, 1, 0)
-        tag.Position = UDim2.new(0, xOffset, 0, 0)
-        tag.BackgroundColor3 = Theme.Surface
-        tag.Parent = parent
-        createCorner(tag, 6)
-        createStroke(tag, Theme.Stroke)
+    -- FPS Bottom Tag Container
+    local fpsWrapper = Instance.new("Frame")
+    fpsWrapper.Size = UDim2.new(0, 105, 1, 0)
+    fpsWrapper.BackgroundColor3 = Theme.Surface
+    fpsWrapper.Parent = bottomBar
+    createCorner(fpsWrapper, 6)
+    createStroke(fpsWrapper, Theme.Stroke)
+    
+    -- Ping Bottom Tag Container
+    local pingWrapper = Instance.new("Frame")
+    pingWrapper.Size = UDim2.new(0, 115, 1, 0)
+    pingWrapper.Position = UDim2.new(0, 113, 0, 0)
+    pingWrapper.BackgroundColor3 = Theme.Surface
+    pingWrapper.Parent = bottomBar
+    createCorner(pingWrapper, 6)
+    createStroke(pingWrapper, Theme.Stroke)
 
-        local icon = Instance.new("ImageLabel")
-        icon.Size = UDim2.new(0, 16, 0, 16)
-        icon.Position = UDim2.new(0, 10, 0.5, -8)
-        icon.BackgroundTransparency = 1
-        icon.Image = FetchExternalImage(iconUrl, labelText .. "_icon.png")
-        icon.Parent = tag
-
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, -34, 1, 0)
-        label.Position = UDim2.new(0, 32, 0, 0)
-        label.BackgroundTransparency = 1
-        label.Text = labelText .. ": --"
-        label.TextColor3 = Theme.SubText
-        label.Font = Enum.Font.GothamMedium
-        label.TextSize = 12
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.Parent = tag
-
-        return label
-    end
-
-    local fpsLabel = createStatusTag(bottomBar, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/speed.png?raw=true", "FPS", 0, 105)
-    local pingLabel = createStatusTag(bottomBar, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/network.png?raw=true", "PING", 113, 115)
+    -- Bottom HUD Items Built with Unified Function
+    local fpsLabel = createStatusTag(fpsWrapper, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/speed.png?raw=true", "FPS_icon.png", "FPS", 0, 105)
+    local pingLabel = createStatusTag(pingWrapper, "https://github.com/ntxcrim69/NatrixLibrary/blob/main/network.png?raw=true", "PING_icon.png", "PING", 0, 115)
 
     -- Settings Gear Button (Toggles Settings Menu)
     local settingsBtn = Instance.new("TextButton")
@@ -491,36 +470,40 @@ function Library:CreateWindow(config)
         settingsMenu.Visible = not settingsMenu.Visible
     end)
 
-    -- Live Stats Logic Loops (Accurate Delta-Time FPS & Network Ping Calculation)
-    local frameCount = 0
-    local fpsAccumulator = 0
-    RunService.RenderStepped:Connect(function(dt)
-        frameCount = frameCount + 1
-        fpsAccumulator = fpsAccumulator + dt
-        if fpsAccumulator >= 0.5 then
-            local currentFPS = tostring(math.floor(frameCount / fpsAccumulator + 0.5))
+    -- Live Stats Logic Loops (Highly Accurate os.clock() calculation)
+    local frames = 0
+    local lastUpdate = os.clock()
+    RunService.RenderStepped:Connect(function()
+        frames = frames + 1
+        local now = os.clock()
+        if now - lastUpdate >= 1 then
+            local currentFPS = tostring(frames)
             fpsLabel.Text = "FPS: " .. currentFPS
             hudFps.Text = "FPS: " .. currentFPS
-            frameCount = 0
-            fpsAccumulator = 0
+            frames = 0
+            lastUpdate = now
         end
     end)
 
+    -- Accurate Network Ping Calculation
     task.spawn(function()
         while task.wait(1) do
-            local success, pingVal = pcall(function()
-                return math.floor((LocalPlayer:GetNetworkPing() * 1000) + 0.5)
+            local pingVal = 0
+            local success, result = pcall(function()
+                return LocalPlayer:GetNetworkPing()
             end)
-            if not success or not pingVal then
+            
+            if success and result then
+                pingVal = math.floor(result * 1000)
+            else
                 pcall(function()
                     pingVal = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
                 end)
             end
-            if success and pingVal then
-                local currentPing = tostring(pingVal)
-                pingLabel.Text = "PING: " .. currentPing
-                hudPing.Text = "PING: " .. currentPing
-            end
+            
+            local currentPing = tostring(pingVal)
+            pingLabel.Text = "PING: " .. currentPing
+            hudPing.Text = "PING: " .. currentPing
         end
     end)
 
