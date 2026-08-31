@@ -54,7 +54,7 @@ LoadConfig()
 
 local ThemeOptions = {
     ["Dark Theme"] = "",
-    ["Black Hole"] = "rbxassetid://6071575925"
+    ["Black Hole"] = "rbxassetid://134736124666311"
 }
 
 if not ThemeOptions[Config.ThemeName] then
