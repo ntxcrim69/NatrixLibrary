@@ -320,7 +320,6 @@ function Library:CreateWindow(config)
     contentArea.Size = UDim2.new(1, 0, 1, -110) 
     contentArea.Position = UDim2.new(0, 0, 0, 54) 
     contentArea.BackgroundColor3 = Theme.Background
-    contentArea.BackgroundTransparency = 0
     contentArea.BorderSizePixel = 0
     contentArea.ClipsDescendants = true
     contentArea.ZIndex = 2
