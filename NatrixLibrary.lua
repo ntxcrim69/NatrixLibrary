@@ -54,10 +54,7 @@ LoadConfig()
 
 local ThemeOptions = {
     ["Dark Theme"] = "",
-    ["Black Hole"] = "rbxassetid://6071575925",
-    ["Lace"] = "rbxassetid://13803685738",
-    ["Nebula"] = "rbxassetid://11959884745",
-    ["Ocean"] = "rbxassetid://1839939207"
+    ["Black Hole"] = "rbxassetid://6071575925"
 }
 
 if not ThemeOptions[Config.ThemeName] then
@@ -483,7 +480,7 @@ function Library:CreateWindow(config)
     createStroke(themeButton, Theme.Stroke)
 
     local themeList = Instance.new("Frame")
-    themeList.Size = UDim2.new(0, 150, 0, 160)
+    themeList.Size = UDim2.new(0, 150, 0, 60)
     themeList.Position = UDim2.new(1, -150, 1, 4)
     themeList.BackgroundColor3 = Theme.SurfaceElevated
     themeList.Visible = false
@@ -500,7 +497,7 @@ function Library:CreateWindow(config)
 
     for themeName, imageId in pairs(ThemeOptions) do
         local option = Instance.new("TextButton")
-        option.Size = UDim2.new(1, 0, 0, 26)
+        option.Size = UDim2.new(1, 0, 0, 24)
         option.BackgroundColor3 = Theme.SurfaceElevated
         option.BackgroundTransparency = 1
         option.Text = themeName
