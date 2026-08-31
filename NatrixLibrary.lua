@@ -1,6 +1,5 @@
 --[[
     Library Wrapper - "Natrix Pro"
-    Theme: Black Hole (Fixed Artwork Rendering & High-Contrast Overlay)
 ]]
 
 local Library = {}
@@ -25,52 +24,9 @@ local Config = {
     FPSCounterEnabled = false,
     ToggleKey = "RightShift",
     ThemeName = "Black Hole",
-    BackgroundImageId = "",
-    BackgroundTransparency = 0
+    BackgroundImageId = "rbxassetid://134736124666311",
+    BackgroundTransparency = 0.55
 }
-
--- External Image Fetcher with Roblox Asset ID Fallback
-local imageCache = {}
-local function FetchExternalImage(url, fileName, fallbackAssetId)
-    if imageCache[fileName] and imageCache[fileName] ~= "" then 
-        return imageCache[fileName] 
-    end
-    
-    local success, asset = pcall(function()
-        if isfile and writefile and getcustomasset then
-            if isfile(fileName) and readfile then
-                local content = readfile(fileName)
-                if #content == 0 or content:find("404") or content:find("400") then
-                    if delfile then pcall(delfile, fileName) end
-                end
-            end
-            
-            if not isfile(fileName) then
-                local imgData = game:HttpGet(url)
-                if imgData and #imgData > 0 and not imgData:find("404") and not imgData:find("400") then
-                    writefile(fileName, imgData)
-                else
-                    return ""
-                end
-            end
-            return getcustomasset(fileName)
-        end
-        return ""
-    end)
-    
-    local result = (success and asset and asset ~= "") and asset or (fallbackAssetId or "")
-    if result ~= "" then
-        imageCache[fileName] = result
-    end
-    return result
-end
-
--- Resolve Black Hole Artwork URL/Asset
-local BlackHoleAsset = FetchExternalImage(
-    "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/blackhole.png", 
-    "BlackHole_BG.png", 
-    "rbxassetid://134736124666311"
-)
 
 local function SaveConfig()
     local success, encoded = pcall(function()
@@ -97,24 +53,24 @@ end
 LoadConfig()
 
 local ThemeOptions = {
-    ["Black Hole"] = BlackHoleAsset,
+    ["Black Hole"] = "rbxassetid://134736124666311",
     ["Dark Theme"] = ""
 }
 
-if not ThemeOptions[Config.ThemeName] or ThemeOptions[Config.ThemeName] == "" then
+if not ThemeOptions[Config.ThemeName] then
     Config.ThemeName = "Black Hole"
 end
 Config.BackgroundImageId = ThemeOptions[Config.ThemeName]
 
 -- Design System Constants
 local Theme = {
-    Background = Color3.fromRGB(8, 8, 12),
-    Surface = Color3.fromRGB(15, 15, 20),
-    SurfaceElevated = Color3.fromRGB(24, 24, 32),
-    Stroke = Color3.fromRGB(50, 50, 60),
-    Accent = Color3.fromRGB(255, 255, 255),
-    Text = Color3.fromRGB(255, 255, 255),
-    SubText = Color3.fromRGB(170, 170, 180),
+    Background = Color3.fromRGB(5, 5, 5),         -- Pitch Black (#050505)
+    Surface = Color3.fromRGB(12, 12, 12),         -- Deep gray for panels
+    SurfaceElevated = Color3.fromRGB(18, 18, 18),
+    Stroke = Color3.fromRGB(45, 45, 45),          -- Crisp contrast border
+    Accent = Color3.fromRGB(255, 255, 255),       -- Pure White
+    Text = Color3.fromRGB(255, 255, 255),         -- Pure White
+    SubText = Color3.fromRGB(160, 160, 160),      -- Light gray for inactive text
     Danger = Color3.fromRGB(255, 55, 55)
 }
 
@@ -150,6 +106,43 @@ local function animate(object, properties, duration)
     local tween = TweenService:Create(object, info, properties)
     tween:Play()
     return tween
+end
+
+-- External Image Fetcher with Roblox Asset ID Fallback
+local imageCache = {}
+local function FetchExternalImage(url, fileName, fallbackAssetId)
+    if imageCache[fileName] and imageCache[fileName] ~= "" then 
+        return imageCache[fileName] 
+    end
+    
+    local success, asset = pcall(function()
+        if isfile and writefile and getcustomasset then
+            -- Clean empty or 404 cached files from previous failed downloads
+            if isfile(fileName) and readfile then
+                local content = readfile(fileName)
+                if #content == 0 or content:find("404") or content:find("400") then
+                    if delfile then pcall(delfile, fileName) end
+                end
+            end
+            
+            if not isfile(fileName) then
+                local imgData = game:HttpGet(url)
+                if imgData and #imgData > 0 and not imgData:find("404") and not imgData:find("400") then
+                    writefile(fileName, imgData)
+                else
+                    return ""
+                end
+            end
+            return getcustomasset(fileName)
+        end
+        return ""
+    end)
+    
+    local result = (success and asset and asset ~= "") and asset or (fallbackAssetId or "")
+    if result ~= "" then
+        imageCache[fileName] = result
+    end
+    return result
 end
 
 -- Status Tag Creator
@@ -211,7 +204,8 @@ function Library:CreateWindow(config)
     setmetatable(windowObj, Library)
 
     function windowObj:GetElementTransparency()
-        return 0.15
+        local isDarkTheme = (Config.ThemeName == "Dark Theme") or (Config.BackgroundImageId == "")
+        return isDarkTheme and 0 or 0.25
     end
 
     function windowObj:RegisterElement(element, customTransparency)
@@ -222,7 +216,7 @@ function Library:CreateWindow(config)
         element.BackgroundTransparency = customTransparency or windowObj:GetElementTransparency()
     end
 
-    -- Master Outer Screen Container
+    -- Master Container
     local outerContainer = Instance.new("Frame")
     outerContainer.Name = "OuterContainer"
     outerContainer.Size = UDim2.new(0, 600, 0, 480)
@@ -300,7 +294,7 @@ function Library:CreateWindow(config)
     local function addPanelBackground(panel, yOffset)
         panel.ClipsDescendants = true
         table.insert(panels, panel)
-    
+
         local bg = Instance.new("ImageLabel")
         bg.Name = "PanelBackgroundImage"
         bg.Size = UDim2.new(1, 0, 0, 480)
@@ -309,19 +303,21 @@ function Library:CreateWindow(config)
         bg.Image = Config.BackgroundImageId
         bg.ImageTransparency = Config.BackgroundTransparency
         bg.ScaleType = Enum.ScaleType.Crop
-        bg.ZIndex = panel.ZIndex -- Changed from 1 to panel.ZIndex so it renders above the panel base
+        bg.ZIndex = 1
         bg.Parent = panel
         createCorner(bg, 4)
         table.insert(bgImages, bg)
         return bg
     end
+
     local function updateTheme()
         local isDarkTheme = (Config.ThemeName == "Dark Theme") or (Config.BackgroundImageId == "")
-        local imgTransparency = isDarkTheme and 1 or 0
+        local panelTransparency = isDarkTheme and 0 or 0.2
+        local imgTransparency = isDarkTheme and 1 or Config.BackgroundTransparency
         local elemTransparency = windowObj:GetElementTransparency()
 
         for _, panel in ipairs(panels) do
-            panel.BackgroundTransparency = isDarkTheme and 0 or 1
+            panel.BackgroundTransparency = panelTransparency
         end
 
         for _, bg in ipairs(bgImages) do
@@ -341,7 +337,6 @@ function Library:CreateWindow(config)
     topBar.Name = "TopBar"
     topBar.Size = UDim2.new(1, 0, 0, 44)
     topBar.BackgroundColor3 = Theme.Background
-    topBar.BackgroundTransparency = 0
     topBar.BorderSizePixel = 0
     topBar.ZIndex = 2
     topBar.Parent = mainApp
@@ -372,7 +367,7 @@ function Library:CreateWindow(config)
     tabListContainer.Name = "TabList"
     tabListContainer.Size = UDim2.new(1, -50, 1, 0)
     tabListContainer.BackgroundTransparency = 1
-    tabListContainer.ZIndex = 3
+    tabListContainer.ZIndex = 2
     tabListContainer.Parent = topBar
     createPadding(tabListContainer, 6, 6, 8, 8)
 
@@ -394,7 +389,7 @@ function Library:CreateWindow(config)
     closeBtn.TextColor3 = Theme.SubText
     closeBtn.Font = Enum.Font.GothamBold
     closeBtn.TextSize = 11
-    closeBtn.ZIndex = 4
+    closeBtn.ZIndex = 3
     closeBtn.Parent = topBar
     createCorner(closeBtn, 4)
     createStroke(closeBtn, Theme.Stroke)
@@ -410,7 +405,6 @@ function Library:CreateWindow(config)
     contentArea.Size = UDim2.new(1, 0, 1, -110) 
     contentArea.Position = UDim2.new(0, 0, 0, 54) 
     contentArea.BackgroundColor3 = Theme.Background
-    contentArea.BackgroundTransparency = 0
     contentArea.BorderSizePixel = 0
     contentArea.ZIndex = 2
     contentArea.Parent = mainApp
@@ -653,7 +647,6 @@ function Library:CreateWindow(config)
     bottomBar.Size = UDim2.new(1, 0, 0, 46)
     bottomBar.Position = UDim2.new(0, 0, 1, -46)
     bottomBar.BackgroundColor3 = Theme.Background
-    bottomBar.BackgroundTransparency = 0
     bottomBar.ZIndex = 2
     bottomBar.Parent = mainApp
     createCorner(bottomBar, 4)
@@ -664,14 +657,14 @@ function Library:CreateWindow(config)
     bottomContent.Name = "BottomContent"
     bottomContent.Size = UDim2.new(1, 0, 1, 0)
     bottomContent.BackgroundTransparency = 1
-    bottomContent.ZIndex = 3
+    bottomContent.ZIndex = 2
     bottomContent.Parent = bottomBar
     createPadding(bottomContent, 6, 6, 8, 8)
 
     local fpsWrapper = Instance.new("Frame")
     fpsWrapper.Size = UDim2.new(0, 105, 1, 0)
     fpsWrapper.BackgroundColor3 = Theme.Surface
-    fpsWrapper.ZIndex = 4
+    fpsWrapper.ZIndex = 3
     fpsWrapper.Parent = bottomContent
     createCorner(fpsWrapper, 4)
     createStroke(fpsWrapper, Theme.Stroke)
@@ -681,7 +674,7 @@ function Library:CreateWindow(config)
     pingWrapper.Size = UDim2.new(0, 115, 1, 0)
     pingWrapper.Position = UDim2.new(0, 113, 0, 0)
     pingWrapper.BackgroundColor3 = Theme.Surface
-    pingWrapper.ZIndex = 4
+    pingWrapper.ZIndex = 3
     pingWrapper.Parent = bottomContent
     createCorner(pingWrapper, 4)
     createStroke(pingWrapper, Theme.Stroke)
@@ -690,14 +683,14 @@ function Library:CreateWindow(config)
     local fpsLabel = createStatusTag(fpsWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/speed.png", "FPS_icon.png", "FPS", 0, 105, "rbxassetid://10747373176")
     local pingLabel = createStatusTag(pingWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/network.png", "PING_icon.png", "PING", 0, 115, "rbxassetid://10734934585")
 
-    -- Settings Button
+    -- Modern White Settings Button with Image Asset
     local settingsBtn = Instance.new("ImageButton")
     settingsBtn.Name = "SettingsBtn"
     settingsBtn.Size = UDim2.new(0, 32, 0, 32)
     settingsBtn.Position = UDim2.new(1, -32, 0.5, -16)
     settingsBtn.BackgroundColor3 = Theme.Surface
     settingsBtn.AutoButtonColor = false
-    settingsBtn.ZIndex = 4
+    settingsBtn.ZIndex = 3
     settingsBtn.Parent = bottomContent
     createCorner(settingsBtn, 4)
     createStroke(settingsBtn, Theme.Stroke)
@@ -709,11 +702,12 @@ function Library:CreateWindow(config)
     settingsIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
     settingsIcon.BackgroundTransparency = 1
 
+    -- Fetch icon image with working Roblox Asset ID fallback
     local fetchedSettings = FetchExternalImage("https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/settings.png", "Settings_icon.png", "rbxassetid://10734950309")
     settingsIcon.Image = (fetchedSettings ~= "") and fetchedSettings or "rbxassetid://10734950309"
 
     settingsIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
-    settingsIcon.ZIndex = 5
+    settingsIcon.ZIndex = 4
     settingsIcon.Parent = settingsBtn
 
     settingsBtn.MouseEnter:Connect(function() 
@@ -901,7 +895,7 @@ function Library:CreateTab(tabName)
     tabBtn.TextColor3 = Theme.SubText
     tabBtn.Font = Enum.Font.GothamBold
     tabBtn.TextSize = 13
-    tabBtn.ZIndex = 4
+    tabBtn.ZIndex = 3
     tabBtn.Parent = window.TabHolder
     createCorner(tabBtn, 4)
 
@@ -948,7 +942,7 @@ function Library:CreateTab(tabName)
             animate(t.Button, {TextColor3 = Theme.SubText, BackgroundTransparency = 1, Size = UDim2.new(0, 80, 1, 0)})
         end
         pageFrame.Visible = true
-        animate(tabBtn, {TextColor3 = Theme.Accent, BackgroundTransparency = window.Window:GetElementTransparency(), Size = UDim2.new(0, 90, 1, 0)})
+        animate(tabBtn, {TextColor3 = Theme.Accent, BackgroundTransparency = 0, Size = UDim2.new(0, 90, 1, 0)})
         window.ActiveTab = tabObj
     end
 
