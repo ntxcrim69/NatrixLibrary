@@ -23,8 +23,8 @@ local ConfigFileName = "NatrixPro_Config.json"
 local Config = {
     FPSCounterEnabled = false,
     ToggleKey = "RightShift",
-    ThemeName = "Black Hole",
-    BackgroundImageId = "rbxassetid://6071575925",
+    ThemeName = "Dark Theme",
+    BackgroundImageId = "",
     BackgroundTransparency = 0.2
 }
 
@@ -53,6 +53,7 @@ end
 LoadConfig()
 
 local ThemeOptions = {
+    ["Dark Theme"] = "",
     ["Black Hole"] = "rbxassetid://6071575925",
     ["Lace"] = "rbxassetid://13803685738",
     ["Nebula"] = "rbxassetid://11959884745",
@@ -60,7 +61,7 @@ local ThemeOptions = {
 }
 
 if not ThemeOptions[Config.ThemeName] then
-    Config.ThemeName = "Black Hole"
+    Config.ThemeName = "Dark Theme"
 end
 Config.BackgroundImageId = ThemeOptions[Config.ThemeName]
 
@@ -260,12 +261,16 @@ function Library:CreateWindow(config)
     mainApp.Parent = outerContainer
 
     local bgImages = {}
-    local function addPanelBackground(panel)
+    local panels = {}
+
+    local function addPanelBackground(panel, yOffset)
         panel.ClipsDescendants = true
+        table.insert(panels, panel)
+
         local bg = Instance.new("ImageLabel")
         bg.Name = "PanelBackgroundImage"
-        bg.Size = UDim2.new(1, 0, 1, 0)
-        bg.Position = UDim2.new(0, 0, 0, 0)
+        bg.Size = UDim2.new(1, 0, 0, 480)
+        bg.Position = UDim2.new(0, 0, 0, -yOffset)
         bg.BackgroundTransparency = 1
         bg.Image = Config.BackgroundImageId
         bg.ImageTransparency = Config.BackgroundTransparency
@@ -277,18 +282,32 @@ function Library:CreateWindow(config)
         return bg
     end
 
+    local function updateTheme()
+        local isDarkTheme = (Config.ThemeName == "Dark Theme") or (Config.BackgroundImageId == "")
+        local panelTransparency = isDarkTheme and 0 or 0.35
+        local imgTransparency = isDarkTheme and 1 or Config.BackgroundTransparency
+
+        for _, panel in ipairs(panels) do
+            panel.BackgroundTransparency = panelTransparency
+        end
+
+        for _, bg in ipairs(bgImages) do
+            bg.Image = Config.BackgroundImageId
+            bg.ImageTransparency = imgTransparency
+        end
+    end
+
     -- 1. Top Navigation Bar
     local topBar = Instance.new("Frame")
     topBar.Name = "TopBar"
     topBar.Size = UDim2.new(1, 0, 0, 44)
     topBar.BackgroundColor3 = Theme.Background
-    topBar.BackgroundTransparency = 0.35
     topBar.BorderSizePixel = 0
     topBar.ZIndex = 2
     topBar.Parent = mainApp
     createCorner(topBar, 8)
     createStroke(topBar, Theme.Stroke)
-    addPanelBackground(topBar)
+    addPanelBackground(topBar, 0)
 
     local dragging, dragInput, dragStart, startPos
     topBar.InputBegan:Connect(function(input)
@@ -350,13 +369,12 @@ function Library:CreateWindow(config)
     contentArea.Size = UDim2.new(1, 0, 1, -110) 
     contentArea.Position = UDim2.new(0, 0, 0, 54) 
     contentArea.BackgroundColor3 = Theme.Background
-    contentArea.BackgroundTransparency = 0.35
     contentArea.BorderSizePixel = 0
     contentArea.ZIndex = 2
     contentArea.Parent = mainApp
     createCorner(contentArea, 8)
     createStroke(contentArea, Theme.Stroke)
-    addPanelBackground(contentArea)
+    addPanelBackground(contentArea, 54)
 
     windowObj.PageHolder = contentArea
 
@@ -465,7 +483,7 @@ function Library:CreateWindow(config)
     createStroke(themeButton, Theme.Stroke)
 
     local themeList = Instance.new("Frame")
-    themeList.Size = UDim2.new(0, 150, 0, 132)
+    themeList.Size = UDim2.new(0, 150, 0, 160)
     themeList.Position = UDim2.new(1, -150, 1, 4)
     themeList.BackgroundColor3 = Theme.SurfaceElevated
     themeList.Visible = false
@@ -494,9 +512,7 @@ function Library:CreateWindow(config)
         option.MouseButton1Click:Connect(function()
             Config.ThemeName = themeName
             Config.BackgroundImageId = imageId
-            for _, bg in ipairs(bgImages) do
-                bg.Image = imageId
-            end
+            updateTheme()
             themeButton.Text = themeName .. "  v"
             themeList.Visible = false
             SaveConfig()
@@ -584,17 +600,17 @@ function Library:CreateWindow(config)
     bottomBar.Size = UDim2.new(1, 0, 0, 46)
     bottomBar.Position = UDim2.new(0, 0, 1, -46)
     bottomBar.BackgroundColor3 = Theme.Background
-    bottomBar.BackgroundTransparency = 0.35
     bottomBar.ZIndex = 2
     bottomBar.Parent = mainApp
     createCorner(bottomBar, 8)
     createStroke(bottomBar, Theme.Stroke)
     createPadding(bottomBar, 6, 6, 8, 8)
-    addPanelBackground(bottomBar)
+    addPanelBackground(bottomBar, 434)
 
     local fpsWrapper = Instance.new("Frame")
     fpsWrapper.Size = UDim2.new(0, 105, 1, 0)
     fpsWrapper.BackgroundColor3 = Theme.Surface
+    fpsWrapper.BackgroundTransparency = 0.4
     fpsWrapper.ZIndex = 3
     fpsWrapper.Parent = bottomBar
     createCorner(fpsWrapper, 6)
@@ -604,6 +620,7 @@ function Library:CreateWindow(config)
     pingWrapper.Size = UDim2.new(0, 115, 1, 0)
     pingWrapper.Position = UDim2.new(0, 113, 0, 0)
     pingWrapper.BackgroundColor3 = Theme.Surface
+    pingWrapper.BackgroundTransparency = 0.4
     pingWrapper.ZIndex = 3
     pingWrapper.Parent = bottomBar
     createCorner(pingWrapper, 6)
@@ -634,6 +651,8 @@ function Library:CreateWindow(config)
     settingsBtn.MouseButton1Click:Connect(function()
         settingsMenu.Visible = not settingsMenu.Visible
     end)
+
+    updateTheme()
 
     -- Live Stats Calculation
     local frames = 0
