@@ -1,6 +1,6 @@
 --[[
     Library Wrapper - "Natrix Pro"
-    Theme: Black Hole (Opaque Menu Panels to Block Game Visibility)
+    Theme: Black Hole (Fixed Artwork Rendering & High-Contrast Overlay)
 ]]
 
 local Library = {}
@@ -25,89 +25,9 @@ local Config = {
     FPSCounterEnabled = false,
     ToggleKey = "RightShift",
     ThemeName = "Black Hole",
-    BackgroundImageId = "rbxassetid://134736124666311",
-    BackgroundTransparency = 0.55
+    BackgroundImageId = "",
+    BackgroundTransparency = 0
 }
-
-local function SaveConfig()
-    local success, encoded = pcall(function()
-        return HttpService:JSONEncode(Config)
-    end)
-    if success and writefile then
-        writefile(ConfigFileName, encoded)
-    end
-end
-
-local function LoadConfig()
-    if isfile and isfile(ConfigFileName) then
-        local success, decoded = pcall(function()
-            return HttpService:JSONDecode(readfile(ConfigFileName))
-        end)
-        if success and type(decoded) == "table" then
-            for k, v in pairs(decoded) do
-                Config[k] = v
-            end
-        end
-    end
-end
-
-LoadConfig()
-
-local ThemeOptions = {
-    ["Black Hole"] = "rbxassetid://134736124666311",
-    ["Dark Theme"] = ""
-}
-
-if not ThemeOptions[Config.ThemeName] then
-    Config.ThemeName = "Black Hole"
-end
-Config.BackgroundImageId = ThemeOptions[Config.ThemeName]
-
--- Design System Constants
-local Theme = {
-    Background = Color3.fromRGB(5, 5, 5),         -- Pitch Black (#050505) - Fully Opaque Base
-    Surface = Color3.fromRGB(12, 12, 12),         -- Deep gray for panels
-    SurfaceElevated = Color3.fromRGB(18, 18, 18),
-    Stroke = Color3.fromRGB(45, 45, 45),          -- Crisp contrast border
-    Accent = Color3.fromRGB(255, 255, 255),       -- Pure White
-    Text = Color3.fromRGB(255, 255, 255),         -- Pure White
-    SubText = Color3.fromRGB(160, 160, 160),      -- Light gray for inactive text
-    Danger = Color3.fromRGB(255, 55, 55)
-}
-
--- Helper Functions
-local function createCorner(parent, radius)
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, radius or 4)
-    corner.Parent = parent
-    return corner
-end
-
-local function createPadding(parent, top, bottom, left, right)
-    local padding = Instance.new("UIPadding")
-    padding.PaddingTop = UDim.new(0, top or 4)
-    padding.PaddingBottom = UDim.new(0, bottom or 4)
-    padding.PaddingLeft = UDim.new(0, left or 8)
-    padding.PaddingRight = UDim.new(0, right or 8)
-    padding.Parent = parent
-    return padding
-end
-
-local function createStroke(parent, color, thickness)
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = color or Theme.Stroke
-    stroke.Thickness = thickness or 1
-    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-    stroke.Parent = parent
-    return stroke
-end
-
-local function animate(object, properties, duration)
-    local info = TweenInfo.new(duration or 0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
-    local tween = TweenService:Create(object, info, properties)
-    tween:Play()
-    return tween
-end
 
 -- External Image Fetcher with Roblox Asset ID Fallback
 local imageCache = {}
@@ -143,6 +63,93 @@ local function FetchExternalImage(url, fileName, fallbackAssetId)
         imageCache[fileName] = result
     end
     return result
+end
+
+-- Resolve Black Hole Artwork URL/Asset
+local BlackHoleAsset = FetchExternalImage(
+    "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/blackhole.png", 
+    "BlackHole_BG.png", 
+    "rbxassetid://134736124666311"
+)
+
+local function SaveConfig()
+    local success, encoded = pcall(function()
+        return HttpService:JSONEncode(Config)
+    end)
+    if success and writefile then
+        writefile(ConfigFileName, encoded)
+    end
+end
+
+local function LoadConfig()
+    if isfile and isfile(ConfigFileName) then
+        local success, decoded = pcall(function()
+            return HttpService:JSONDecode(readfile(ConfigFileName))
+        end)
+        if success and type(decoded) == "table" then
+            for k, v in pairs(decoded) do
+                Config[k] = v
+            end
+        end
+    end
+end
+
+LoadConfig()
+
+local ThemeOptions = {
+    ["Black Hole"] = BlackHoleAsset,
+    ["Dark Theme"] = ""
+}
+
+if not ThemeOptions[Config.ThemeName] or ThemeOptions[Config.ThemeName] == "" then
+    Config.ThemeName = "Black Hole"
+end
+Config.BackgroundImageId = ThemeOptions[Config.ThemeName]
+
+-- Design System Constants
+local Theme = {
+    Background = Color3.fromRGB(8, 8, 12),
+    Surface = Color3.fromRGB(15, 15, 20),
+    SurfaceElevated = Color3.fromRGB(24, 24, 32),
+    Stroke = Color3.fromRGB(50, 50, 60),
+    Accent = Color3.fromRGB(255, 255, 255),
+    Text = Color3.fromRGB(255, 255, 255),
+    SubText = Color3.fromRGB(170, 170, 180),
+    Danger = Color3.fromRGB(255, 55, 55)
+}
+
+-- Helper Functions
+local function createCorner(parent, radius)
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, radius or 4)
+    corner.Parent = parent
+    return corner
+end
+
+local function createPadding(parent, top, bottom, left, right)
+    local padding = Instance.new("UIPadding")
+    padding.PaddingTop = UDim.new(0, top or 4)
+    padding.PaddingBottom = UDim.new(0, bottom or 4)
+    padding.PaddingLeft = UDim.new(0, left or 8)
+    padding.PaddingRight = UDim.new(0, right or 8)
+    padding.Parent = parent
+    return padding
+end
+
+local function createStroke(parent, color, thickness)
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = color or Theme.Stroke
+    stroke.Thickness = thickness or 1
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Parent = parent
+    return stroke
+end
+
+local function animate(object, properties, duration)
+    local info = TweenInfo.new(duration or 0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(object, info, properties)
+    tween:Play()
+    return tween
 end
 
 -- Status Tag Creator
@@ -203,9 +210,8 @@ function Library:CreateWindow(config)
     }
     setmetatable(windowObj, Library)
 
-    -- Force element containers to stay opaque so game never shows through
     function windowObj:GetElementTransparency()
-        return 0
+        return 0.15
     end
 
     function windowObj:RegisterElement(element, customTransparency)
@@ -216,7 +222,7 @@ function Library:CreateWindow(config)
         element.BackgroundTransparency = customTransparency or windowObj:GetElementTransparency()
     end
 
-    -- Master Outer Screen Container (Fully transparent background layer)
+    -- Master Outer Screen Container
     local outerContainer = Instance.new("Frame")
     outerContainer.Name = "OuterContainer"
     outerContainer.Size = UDim2.new(0, 600, 0, 480)
@@ -301,7 +307,7 @@ function Library:CreateWindow(config)
         bg.Position = UDim2.new(0, 0, 0, -yOffset)
         bg.BackgroundTransparency = 1
         bg.Image = Config.BackgroundImageId
-        bg.ImageTransparency = Config.BackgroundTransparency
+        bg.ImageTransparency = 0
         bg.ScaleType = Enum.ScaleType.Crop
         bg.ZIndex = 1
         bg.Parent = panel
@@ -312,13 +318,11 @@ function Library:CreateWindow(config)
 
     local function updateTheme()
         local isDarkTheme = (Config.ThemeName == "Dark Theme") or (Config.BackgroundImageId == "")
-        -- Panels are kept fully OPAQUE (0) so game world is completely hidden behind the menu box
-        local panelTransparency = 0 
-        local imgTransparency = isDarkTheme and 1 or Config.BackgroundTransparency
+        local imgTransparency = isDarkTheme and 1 or 0
         local elemTransparency = windowObj:GetElementTransparency()
 
         for _, panel in ipairs(panels) do
-            panel.BackgroundTransparency = panelTransparency
+            panel.BackgroundTransparency = isDarkTheme and 0 or 1
         end
 
         for _, bg in ipairs(bgImages) do
@@ -333,7 +337,7 @@ function Library:CreateWindow(config)
         end
     end
 
-    -- 1. Top Navigation Bar (Solid panel base + Black Hole theme overlay)
+    -- 1. Top Navigation Bar
     local topBar = Instance.new("Frame")
     topBar.Name = "TopBar"
     topBar.Size = UDim2.new(1, 0, 0, 44)
@@ -369,7 +373,7 @@ function Library:CreateWindow(config)
     tabListContainer.Name = "TabList"
     tabListContainer.Size = UDim2.new(1, -50, 1, 0)
     tabListContainer.BackgroundTransparency = 1
-    tabListContainer.ZIndex = 2
+    tabListContainer.ZIndex = 3
     tabListContainer.Parent = topBar
     createPadding(tabListContainer, 6, 6, 8, 8)
 
@@ -391,7 +395,7 @@ function Library:CreateWindow(config)
     closeBtn.TextColor3 = Theme.SubText
     closeBtn.Font = Enum.Font.GothamBold
     closeBtn.TextSize = 11
-    closeBtn.ZIndex = 3
+    closeBtn.ZIndex = 4
     closeBtn.Parent = topBar
     createCorner(closeBtn, 4)
     createStroke(closeBtn, Theme.Stroke)
@@ -401,7 +405,7 @@ function Library:CreateWindow(config)
     closeBtn.MouseLeave:Connect(function() animate(closeBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Theme.SubText, BackgroundTransparency = windowObj:GetElementTransparency()}) end)
     closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 
-    -- 2. Content Area (Solid panel base + Black Hole theme overlay)
+    -- 2. Content Area
     local contentArea = Instance.new("Frame")
     contentArea.Name = "ContentArea"
     contentArea.Size = UDim2.new(1, 0, 1, -110) 
@@ -644,7 +648,7 @@ function Library:CreateWindow(config)
         settingsMenu.Visible = false
     end)
 
-    -- 4. Bottom Status Bar (Solid panel base + Black Hole theme overlay)
+    -- 4. Bottom Status Bar
     local bottomBar = Instance.new("Frame")
     bottomBar.Name = "BottomBar"
     bottomBar.Size = UDim2.new(1, 0, 0, 46)
@@ -661,14 +665,14 @@ function Library:CreateWindow(config)
     bottomContent.Name = "BottomContent"
     bottomContent.Size = UDim2.new(1, 0, 1, 0)
     bottomContent.BackgroundTransparency = 1
-    bottomContent.ZIndex = 2
+    bottomContent.ZIndex = 3
     bottomContent.Parent = bottomBar
     createPadding(bottomContent, 6, 6, 8, 8)
 
     local fpsWrapper = Instance.new("Frame")
     fpsWrapper.Size = UDim2.new(0, 105, 1, 0)
     fpsWrapper.BackgroundColor3 = Theme.Surface
-    fpsWrapper.ZIndex = 3
+    fpsWrapper.ZIndex = 4
     fpsWrapper.Parent = bottomContent
     createCorner(fpsWrapper, 4)
     createStroke(fpsWrapper, Theme.Stroke)
@@ -678,7 +682,7 @@ function Library:CreateWindow(config)
     pingWrapper.Size = UDim2.new(0, 115, 1, 0)
     pingWrapper.Position = UDim2.new(0, 113, 0, 0)
     pingWrapper.BackgroundColor3 = Theme.Surface
-    pingWrapper.ZIndex = 3
+    pingWrapper.ZIndex = 4
     pingWrapper.Parent = bottomContent
     createCorner(pingWrapper, 4)
     createStroke(pingWrapper, Theme.Stroke)
@@ -687,14 +691,14 @@ function Library:CreateWindow(config)
     local fpsLabel = createStatusTag(fpsWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/speed.png", "FPS_icon.png", "FPS", 0, 105, "rbxassetid://10747373176")
     local pingLabel = createStatusTag(pingWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/network.png", "PING_icon.png", "PING", 0, 115, "rbxassetid://10734934585")
 
-    -- Modern White Settings Button with Image Asset
+    -- Settings Button
     local settingsBtn = Instance.new("ImageButton")
     settingsBtn.Name = "SettingsBtn"
     settingsBtn.Size = UDim2.new(0, 32, 0, 32)
     settingsBtn.Position = UDim2.new(1, -32, 0.5, -16)
     settingsBtn.BackgroundColor3 = Theme.Surface
     settingsBtn.AutoButtonColor = false
-    settingsBtn.ZIndex = 3
+    settingsBtn.ZIndex = 4
     settingsBtn.Parent = bottomContent
     createCorner(settingsBtn, 4)
     createStroke(settingsBtn, Theme.Stroke)
@@ -706,12 +710,11 @@ function Library:CreateWindow(config)
     settingsIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
     settingsIcon.BackgroundTransparency = 1
 
-    -- Fetch icon image with working Roblox Asset ID fallback
     local fetchedSettings = FetchExternalImage("https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/settings.png", "Settings_icon.png", "rbxassetid://10734950309")
     settingsIcon.Image = (fetchedSettings ~= "") and fetchedSettings or "rbxassetid://10734950309"
 
     settingsIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
-    settingsIcon.ZIndex = 4
+    settingsIcon.ZIndex = 5
     settingsIcon.Parent = settingsBtn
 
     settingsBtn.MouseEnter:Connect(function() 
@@ -899,7 +902,7 @@ function Library:CreateTab(tabName)
     tabBtn.TextColor3 = Theme.SubText
     tabBtn.Font = Enum.Font.GothamBold
     tabBtn.TextSize = 13
-    tabBtn.ZIndex = 3
+    tabBtn.ZIndex = 4
     tabBtn.Parent = window.TabHolder
     createCorner(tabBtn, 4)
 
@@ -946,7 +949,7 @@ function Library:CreateTab(tabName)
             animate(t.Button, {TextColor3 = Theme.SubText, BackgroundTransparency = 1, Size = UDim2.new(0, 80, 1, 0)})
         end
         pageFrame.Visible = true
-        animate(tabBtn, {TextColor3 = Theme.Accent, BackgroundTransparency = 0, Size = UDim2.new(0, 90, 1, 0)})
+        animate(tabBtn, {TextColor3 = Theme.Accent, BackgroundTransparency = window.Window:GetElementTransparency(), Size = UDim2.new(0, 90, 1, 0)})
         window.ActiveTab = tabObj
     end
 
