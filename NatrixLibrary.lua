@@ -284,8 +284,8 @@ function Library:CreateWindow(config)
     mainApp.Name = "MainApp"
     mainApp.Size = UDim2.new(1, 0, 1, 0)
     mainApp.BackgroundTransparency = 1
-    mainApp.GroupTransparency = useKeySystem and 1 or 0
-    mainApp.Visible = true
+    mainApp.GroupTransparency = 0
+    mainApp.Visible = not useKeySystem
     mainApp.ZIndex = 2
     mainApp.Parent = outerContainer
 
@@ -903,6 +903,8 @@ function Library:CreateWindow(config)
                 outTween:Play()
                 outTween.Completed:Wait()
                 keyModal:Destroy()
+                mainApp.GroupTransparency = 1
+                mainApp.Visible = true
                 TweenService:Create(mainApp, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {GroupTransparency = 0}):Play()
             else
                 keyInput.Text = ""
