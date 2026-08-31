@@ -23,7 +23,6 @@ local ConfigFileName = "NatrixPro_Config.json"
 local Config = {
     FPSCounterEnabled = false,
     ToggleKey = "RightShift",
-    BackgroundEnabled = true,
     ThemeName = "Black Hole",
     BackgroundImageId = "rbxassetid://6071575925",
     BackgroundTransparency = 0.2
@@ -252,40 +251,44 @@ function Library:CreateWindow(config)
     local hudPing = createStatusTag(topMiddleHud, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/network.png", "PING_icon.png", "PING", 115, 115)
 
     -- Main UI Layout Setup
-    local mainApp = Instance.new("CanvasGroup")
+    local mainApp = Instance.new("Frame")
     mainApp.Name = "MainApp"
     mainApp.Size = UDim2.new(1, 0, 1, 0)
     mainApp.BackgroundTransparency = 1
-    mainApp.ClipsDescendants = true
     mainApp.Visible = not useKeySystem
     mainApp.ZIndex = 2
     mainApp.Parent = outerContainer
 
-    -- Full-window background layer. mainApp clips it to the rounded interface bounds.
-    local bgImage = Instance.new("ImageLabel")
-    bgImage.Name = "BackgroundImage"
-    bgImage.Size = UDim2.new(1, 0, 1, 0)
-    bgImage.Position = UDim2.new(0, 0, 0, 0)
-    bgImage.BackgroundTransparency = 1
-    bgImage.Image = Config.BackgroundImageId
-    bgImage.ImageTransparency = Config.BackgroundTransparency
-    bgImage.ScaleType = Enum.ScaleType.Crop
-    bgImage.ZIndex = 1
-    bgImage.Visible = Config.BackgroundEnabled
-    bgImage.Parent = mainApp
-    createCorner(bgImage, 8)
+    local bgImages = {}
+    local function addPanelBackground(panel)
+        panel.ClipsDescendants = true
+        local bg = Instance.new("ImageLabel")
+        bg.Name = "PanelBackgroundImage"
+        bg.Size = UDim2.new(1, 0, 1, 0)
+        bg.Position = UDim2.new(0, 0, 0, 0)
+        bg.BackgroundTransparency = 1
+        bg.Image = Config.BackgroundImageId
+        bg.ImageTransparency = Config.BackgroundTransparency
+        bg.ScaleType = Enum.ScaleType.Crop
+        bg.ZIndex = 1
+        bg.Parent = panel
+        createCorner(bg, 8)
+        table.insert(bgImages, bg)
+        return bg
+    end
 
-    -- 1. Top Navigation Bar (Opaque Solid Surface)
+    -- 1. Top Navigation Bar
     local topBar = Instance.new("Frame")
     topBar.Name = "TopBar"
     topBar.Size = UDim2.new(1, 0, 0, 44)
     topBar.BackgroundColor3 = Theme.Background
-    topBar.BackgroundTransparency = Config.BackgroundEnabled and 0.35 or 0
+    topBar.BackgroundTransparency = 0.35
     topBar.BorderSizePixel = 0
     topBar.ZIndex = 2
     topBar.Parent = mainApp
     createCorner(topBar, 8)
     createStroke(topBar, Theme.Stroke)
+    addPanelBackground(topBar)
 
     local dragging, dragInput, dragStart, startPos
     topBar.InputBegan:Connect(function(input)
@@ -341,24 +344,23 @@ function Library:CreateWindow(config)
     closeBtn.MouseLeave:Connect(function() animate(closeBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Theme.SubText}) end)
     closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 
-    -- 2. Content Area (Opaque Solid Surface)
+    -- 2. Content Area
     local contentArea = Instance.new("Frame")
     contentArea.Name = "ContentArea"
     contentArea.Size = UDim2.new(1, 0, 1, -110) 
     contentArea.Position = UDim2.new(0, 0, 0, 54) 
     contentArea.BackgroundColor3 = Theme.Background
-    -- Keep the panel translucent so the clipped background image can be seen.
-    contentArea.BackgroundTransparency = Config.BackgroundEnabled and 0.35 or 0
+    contentArea.BackgroundTransparency = 0.35
     contentArea.BorderSizePixel = 0
-    contentArea.ClipsDescendants = true
     contentArea.ZIndex = 2
     contentArea.Parent = mainApp
     createCorner(contentArea, 8)
     createStroke(contentArea, Theme.Stroke)
+    addPanelBackground(contentArea)
 
     windowObj.PageHolder = contentArea
 
-    -- 3. Settings Menu Overlay (Opaque Solid Surface)
+    -- 3. Settings Menu Overlay
     local settingsMenu = Instance.new("Frame")
     settingsMenu.Name = "SettingsMenu"
     settingsMenu.Size = UDim2.new(1, 0, 1, 0)
@@ -492,7 +494,9 @@ function Library:CreateWindow(config)
         option.MouseButton1Click:Connect(function()
             Config.ThemeName = themeName
             Config.BackgroundImageId = imageId
-            bgImage.Image = imageId
+            for _, bg in ipairs(bgImages) do
+                bg.Image = imageId
+            end
             themeButton.Text = themeName .. "  v"
             themeList.Visible = false
             SaveConfig()
@@ -503,73 +507,10 @@ function Library:CreateWindow(config)
         themeList.Visible = not themeList.Visible
     end)
 
-    -- Settings Item 3: Theme Enabled Toggle
-    local bgToggleFrame = Instance.new("Frame")
-    bgToggleFrame.Size = UDim2.new(1, -24, 0, 42)
-    bgToggleFrame.Position = UDim2.new(0, 12, 0, 120)
-    bgToggleFrame.BackgroundColor3 = Theme.Surface
-    bgToggleFrame.ZIndex = 11
-    bgToggleFrame.Parent = settingsMenu
-    createCorner(bgToggleFrame, 6)
-    createStroke(bgToggleFrame, Theme.Stroke)
-    createPadding(bgToggleFrame, 0, 0, 4, 12)
-
-    local bgText = Instance.new("TextLabel")
-    bgText.Size = UDim2.new(0.6, 0, 1, 0)
-    bgText.BackgroundTransparency = 1
-    bgText.Text = "Theme Enabled"
-    bgText.TextColor3 = Theme.Text
-    bgText.Font = Enum.Font.GothamMedium
-    bgText.TextSize = 13
-    bgText.TextXAlignment = Enum.TextXAlignment.Left
-    bgText.ZIndex = 12
-    bgText.Parent = bgToggleFrame
-
-    local bgTrack = Instance.new("Frame")
-    bgTrack.Size = UDim2.new(0, 40, 0, 20)
-    bgTrack.Position = UDim2.new(1, -44, 0.5, -10)
-    bgTrack.BackgroundColor3 = Config.BackgroundEnabled and Theme.Accent or Theme.Background
-    bgTrack.ZIndex = 12
-    bgTrack.Parent = bgToggleFrame
-    createCorner(bgTrack, 20)
-    local bgTrackStroke = createStroke(bgTrack, Config.BackgroundEnabled and Theme.Accent or Theme.Stroke)
-
-    local bgKnob = Instance.new("Frame")
-    bgKnob.Size = UDim2.new(0, 14, 0, 14)
-    bgKnob.Position = Config.BackgroundEnabled and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7)
-    bgKnob.BackgroundColor3 = Config.BackgroundEnabled and Theme.Background or Theme.SubText
-    bgKnob.ZIndex = 13
-    bgKnob.Parent = bgTrack
-    createCorner(bgKnob, 14)
-
-    local bgBtn = Instance.new("TextButton")
-    bgBtn.Size = UDim2.new(1, 0, 1, 0)
-    bgBtn.BackgroundTransparency = 1
-    bgBtn.Text = ""
-    bgBtn.ZIndex = 14
-    bgBtn.Parent = bgToggleFrame
-
-    bgBtn.MouseButton1Click:Connect(function()
-        Config.BackgroundEnabled = not Config.BackgroundEnabled
-        bgImage.Visible = Config.BackgroundEnabled
-        -- Restore opaque surfaces when disabled; reveal the image across all three bars when enabled.
-        local surfaceTransparency = Config.BackgroundEnabled and 0.35 or 0
-        topBar.BackgroundTransparency = surfaceTransparency
-        contentArea.BackgroundTransparency = surfaceTransparency
-        bottomBar.BackgroundTransparency = surfaceTransparency
-        bgTrackStroke.Color = Config.BackgroundEnabled and Theme.Accent or Theme.Stroke
-        animate(bgTrack, {BackgroundColor3 = Config.BackgroundEnabled and Theme.Accent or Theme.Background})
-        animate(bgKnob, {
-            Position = Config.BackgroundEnabled and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7),
-            BackgroundColor3 = Config.BackgroundEnabled and Theme.Background or Theme.SubText
-        })
-        SaveConfig()
-    end)
-
     -- Settings Item 3: Menu Toggle Key
     local settingsKeybindFrame = Instance.new("Frame")
     settingsKeybindFrame.Size = UDim2.new(1, -24, 0, 42)
-    settingsKeybindFrame.Position = UDim2.new(0, 12, 0, 172)
+    settingsKeybindFrame.Position = UDim2.new(0, 12, 0, 120)
     settingsKeybindFrame.BackgroundColor3 = Theme.Surface
     settingsKeybindFrame.ZIndex = 11
     settingsKeybindFrame.Parent = settingsMenu
@@ -637,18 +578,19 @@ function Library:CreateWindow(config)
         settingsMenu.Visible = false
     end)
 
-    -- 4. Bottom Status Bar (Opaque Solid Surface)
+    -- 4. Bottom Status Bar
     local bottomBar = Instance.new("Frame")
     bottomBar.Name = "BottomBar"
     bottomBar.Size = UDim2.new(1, 0, 0, 46)
     bottomBar.Position = UDim2.new(0, 0, 1, -46)
     bottomBar.BackgroundColor3 = Theme.Background
-    bottomBar.BackgroundTransparency = Config.BackgroundEnabled and 0.35 or 0
+    bottomBar.BackgroundTransparency = 0.35
     bottomBar.ZIndex = 2
     bottomBar.Parent = mainApp
     createCorner(bottomBar, 8)
     createStroke(bottomBar, Theme.Stroke)
     createPadding(bottomBar, 6, 6, 8, 8)
+    addPanelBackground(bottomBar)
 
     local fpsWrapper = Instance.new("Frame")
     fpsWrapper.Size = UDim2.new(0, 105, 1, 0)
