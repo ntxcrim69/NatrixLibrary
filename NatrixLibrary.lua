@@ -300,22 +300,21 @@ function Library:CreateWindow(config)
     local function addPanelBackground(panel, yOffset)
         panel.ClipsDescendants = true
         table.insert(panels, panel)
-
+    
         local bg = Instance.new("ImageLabel")
         bg.Name = "PanelBackgroundImage"
         bg.Size = UDim2.new(1, 0, 0, 480)
         bg.Position = UDim2.new(0, 0, 0, -yOffset)
         bg.BackgroundTransparency = 1
         bg.Image = Config.BackgroundImageId
-        bg.ImageTransparency = 0
+        bg.ImageTransparency = Config.BackgroundTransparency
         bg.ScaleType = Enum.ScaleType.Crop
-        bg.ZIndex = 1
+        bg.ZIndex = panel.ZIndex -- Changed from 1 to panel.ZIndex so it renders above the panel base
         bg.Parent = panel
         createCorner(bg, 4)
         table.insert(bgImages, bg)
         return bg
     end
-
     local function updateTheme()
         local isDarkTheme = (Config.ThemeName == "Dark Theme") or (Config.BackgroundImageId == "")
         local imgTransparency = isDarkTheme and 1 or 0
