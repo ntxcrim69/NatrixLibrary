@@ -685,10 +685,13 @@ function Library:CreateWindow(config)
     settingsIcon.Size = UDim2.new(0, 18, 0, 18)
     settingsIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
     settingsIcon.BackgroundTransparency = 1
+
+    -- Replace the external URL or fallback asset ID below to change the icon
     settingsIcon.Image = FetchExternalImage("https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/settings.png", "Settings_icon.png")
     if settingsIcon.Image == "" then
-        settingsIcon.Image = "rbxassetid://7072718362"
+        settingsIcon.Image = "rbxassetid://7072718362" -- Fallback Roblox Asset ID
     end
+
     settingsIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
     settingsIcon.ZIndex = 4
     settingsIcon.Parent = settingsBtn
