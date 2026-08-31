@@ -98,7 +98,7 @@ local function animate(object, properties, duration)
     return tween
 end
 
--- External Image Fetcher (With memory caching and fixed raw URLs)
+-- External Image Fetcher
 local imageCache = {}
 local function FetchExternalImage(url, fileName)
     if imageCache[fileName] then return imageCache[fileName] end
@@ -121,7 +121,7 @@ local function FetchExternalImage(url, fileName)
     return result
 end
 
--- Flattened Status Tag Creator (Bypasses transparent frame render bugs)
+-- Status Tag Creator
 local function createStatusTag(parent, iconUrl, fileName, labelText, xOffset, width)
     local baseZIndex = parent.ZIndex or 1
 
@@ -154,7 +154,7 @@ function Library:CreateWindow(config)
     local useKeySystem = (config.KeySystem == true)
     local keySettings = config.KeySettings or { Keys = {}, Discord = "" }
 
-    -- Parent GUI Protection & Strict Global ZIndex
+    -- ScreenGui Parent Protection
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "NatrixUI_" .. math.random(10000, 99999)
     screenGui.ResetOnSpawn = false
@@ -185,7 +185,6 @@ function Library:CreateWindow(config)
     outerContainer.ZIndex = 1
     outerContainer.Parent = screenGui
 
-    -- Configurable Menu Toggle Key (Loaded from Config)
     local currentToggleKey = Enum.KeyCode[Config.ToggleKey] or Enum.KeyCode.RightShift
 
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
@@ -194,7 +193,7 @@ function Library:CreateWindow(config)
         end
     end)
 
-    -- Top Middle Flush HUD Overlay (Strict High ZIndex)
+    -- Top Middle HUD Overlay
     local topMiddleHud = Instance.new("Frame")
     topMiddleHud.Name = "TopMiddleHud"
     topMiddleHud.Size = UDim2.new(0, 230, 0, 32)
@@ -206,7 +205,6 @@ function Library:CreateWindow(config)
     createCorner(topMiddleHud, 6)
     createStroke(topMiddleHud, Theme.Stroke)
 
-    -- Draggable Logic for TopMiddleHud
     local hudDragging, hudDragInput, hudDragStart, hudStartPos
     topMiddleHud.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -228,7 +226,6 @@ function Library:CreateWindow(config)
         end
     end)
 
-    -- Flattened HUD Items Built Directly into TopMiddleHud (Using fixed raw links)
     local hudFps = createStatusTag(topMiddleHud, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/speed.png", "FPS_icon.png", "FPS", 0, 115)
     
     local hudDivider = Instance.new("Frame")
@@ -250,7 +247,7 @@ function Library:CreateWindow(config)
     mainApp.ZIndex = 2
     mainApp.Parent = outerContainer
 
-    -- Background Image Element (Fixed Black Hole Asset & Proper Layering)
+    -- Outer Window Background Asset Layer
     local bgImage = Instance.new("ImageLabel")
     bgImage.Name = "BackgroundImage"
     bgImage.Size = UDim2.new(1, 0, 1, 0)
@@ -264,19 +261,18 @@ function Library:CreateWindow(config)
     bgImage.Parent = mainApp
     createCorner(bgImage, 8)
 
-    -- 1. Top Navigation Bar
+    -- 1. Top Navigation Bar (Opaque Solid Surface)
     local topBar = Instance.new("Frame")
     topBar.Name = "TopBar"
     topBar.Size = UDim2.new(1, 0, 0, 44)
     topBar.BackgroundColor3 = Theme.Background
-    topBar.BackgroundTransparency = Config.BackgroundEnabled and 0.25 or 0
+    topBar.BackgroundTransparency = 0
     topBar.BorderSizePixel = 0
     topBar.ZIndex = 2
     topBar.Parent = mainApp
     createCorner(topBar, 8)
     createStroke(topBar, Theme.Stroke)
 
-    -- Strict TopBar Dragging Logic
     local dragging, dragInput, dragStart, startPos
     topBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -312,7 +308,7 @@ function Library:CreateWindow(config)
 
     windowObj.TabHolder = tabListContainer
 
-    -- Strict X Close Button
+    -- Close Button
     local closeBtn = Instance.new("TextButton")
     closeBtn.Name = "CloseBtn"
     closeBtn.Size = UDim2.new(0, 26, 0, 26)
@@ -331,13 +327,13 @@ function Library:CreateWindow(config)
     closeBtn.MouseLeave:Connect(function() animate(closeBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Theme.SubText}) end)
     closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 
-    -- 2. Content Area
+    -- 2. Content Area (Opaque Solid Surface)
     local contentArea = Instance.new("Frame")
     contentArea.Name = "ContentArea"
     contentArea.Size = UDim2.new(1, 0, 1, -110) 
     contentArea.Position = UDim2.new(0, 0, 0, 54) 
     contentArea.BackgroundColor3 = Theme.Background
-    contentArea.BackgroundTransparency = Config.BackgroundEnabled and 0.3 or 0
+    contentArea.BackgroundTransparency = 0
     contentArea.BorderSizePixel = 0
     contentArea.ZIndex = 2
     contentArea.Parent = mainApp
@@ -345,18 +341,18 @@ function Library:CreateWindow(config)
     createStroke(contentArea, Theme.Stroke)
     windowObj.PageHolder = contentArea
 
-    -- 3. Settings Menu Overlay
+    -- 3. Settings Menu Overlay (Opaque Solid Surface)
     local settingsMenu = Instance.new("Frame")
     settingsMenu.Name = "SettingsMenu"
     settingsMenu.Size = UDim2.new(1, 0, 1, 0)
     settingsMenu.BackgroundColor3 = Theme.Background
-    settingsMenu.BackgroundTransparency = Config.BackgroundEnabled and 0.15 or 0
+    settingsMenu.BackgroundTransparency = 0
     settingsMenu.Visible = false
     settingsMenu.ZIndex = 10
     settingsMenu.Parent = contentArea
     createCorner(settingsMenu, 8)
 
-    -- Settings Menu Toggle Item 1: FPS & Ping Counter
+    -- Settings Item 1: FPS Counter
     local settingsToggleFrame = Instance.new("Frame")
     settingsToggleFrame.Size = UDim2.new(1, -24, 0, 42)
     settingsToggleFrame.Position = UDim2.new(0, 12, 0, 16)
@@ -414,7 +410,7 @@ function Library:CreateWindow(config)
         SaveConfig()
     end)
 
-    -- Settings Menu Toggle Item 2: Black Hole Background Toggle
+    -- Settings Item 2: Background Image Toggle
     local bgToggleFrame = Instance.new("Frame")
     bgToggleFrame.Size = UDim2.new(1, -24, 0, 42)
     bgToggleFrame.Position = UDim2.new(0, 12, 0, 68)
@@ -428,7 +424,7 @@ function Library:CreateWindow(config)
     local bgText = Instance.new("TextLabel")
     bgText.Size = UDim2.new(0.6, 0, 1, 0)
     bgText.BackgroundTransparency = 1
-    bgText.Text = "Black Hole Background"
+    bgText.Text = "Background Image"
     bgText.TextColor3 = Theme.Text
     bgText.Font = Enum.Font.GothamMedium
     bgText.TextSize = 13
@@ -463,9 +459,6 @@ function Library:CreateWindow(config)
     bgBtn.MouseButton1Click:Connect(function()
         Config.BackgroundEnabled = not Config.BackgroundEnabled
         bgImage.Visible = Config.BackgroundEnabled
-        contentArea.BackgroundTransparency = Config.BackgroundEnabled and 0.3 or 0
-        topBar.BackgroundTransparency = Config.BackgroundEnabled and 0.25 or 0
-        settingsMenu.BackgroundTransparency = Config.BackgroundEnabled and 0.15 or 0
         bgTrackStroke.Color = Config.BackgroundEnabled and Theme.Accent or Theme.Stroke
         animate(bgTrack, {BackgroundColor3 = Config.BackgroundEnabled and Theme.Accent or Theme.Background})
         animate(bgKnob, {
@@ -475,7 +468,7 @@ function Library:CreateWindow(config)
         SaveConfig()
     end)
 
-    -- Settings Menu Row 3: Menu Hide Keybind
+    -- Settings Item 3: Menu Toggle Key
     local settingsKeybindFrame = Instance.new("Frame")
     settingsKeybindFrame.Size = UDim2.new(1, -24, 0, 42)
     settingsKeybindFrame.Position = UDim2.new(0, 12, 0, 120)
@@ -546,20 +539,19 @@ function Library:CreateWindow(config)
         settingsMenu.Visible = false
     end)
 
-    -- 4. Bottom Status Bar
+    -- 4. Bottom Status Bar (Opaque Solid Surface)
     local bottomBar = Instance.new("Frame")
     bottomBar.Name = "BottomBar"
     bottomBar.Size = UDim2.new(1, 0, 0, 46)
     bottomBar.Position = UDim2.new(0, 0, 1, -46)
     bottomBar.BackgroundColor3 = Theme.Background
-    bottomBar.BackgroundTransparency = Config.BackgroundEnabled and 0.25 or 0
+    bottomBar.BackgroundTransparency = 0
     bottomBar.ZIndex = 2
     bottomBar.Parent = mainApp
     createCorner(bottomBar, 8)
     createStroke(bottomBar, Theme.Stroke)
     createPadding(bottomBar, 6, 6, 8, 8)
 
-    -- FPS Bottom Tag Container
     local fpsWrapper = Instance.new("Frame")
     fpsWrapper.Size = UDim2.new(0, 105, 1, 0)
     fpsWrapper.BackgroundColor3 = Theme.Surface
@@ -568,7 +560,6 @@ function Library:CreateWindow(config)
     createCorner(fpsWrapper, 6)
     createStroke(fpsWrapper, Theme.Stroke)
     
-    -- Ping Bottom Tag Container
     local pingWrapper = Instance.new("Frame")
     pingWrapper.Size = UDim2.new(0, 115, 1, 0)
     pingWrapper.Position = UDim2.new(0, 113, 0, 0)
@@ -578,17 +569,15 @@ function Library:CreateWindow(config)
     createCorner(pingWrapper, 6)
     createStroke(pingWrapper, Theme.Stroke)
 
-    -- Bottom HUD Items Built Direct (Using fixed raw links)
     local fpsLabel = createStatusTag(fpsWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/speed.png", "FPS_icon.png", "FPS", 0, 105)
     local pingLabel = createStatusTag(pingWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/network.png", "PING_icon.png", "PING", 0, 115)
 
-    -- Settings Gear Button
     local settingsBtn = Instance.new("TextButton")
     settingsBtn.Size = UDim2.new(0, 32, 0, 32)
     settingsBtn.Position = UDim2.new(1, -32, 0.5, -16)
     settingsBtn.BackgroundColor3 = Theme.Surface
     settingsBtn.Text = "⚙"
-    settingsBtn.TextColor3 = Color3.fromRGB(255, 255, 255) -- Pure White Gear
+    settingsBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     settingsBtn.Font = Enum.Font.GothamBold
     settingsBtn.TextSize = 20 
     settingsBtn.ZIndex = 3
@@ -596,7 +585,6 @@ function Library:CreateWindow(config)
     createCorner(settingsBtn, 6)
     createStroke(settingsBtn, Theme.Stroke)
 
-    -- Inverts to a white background with a black gear on hover
     settingsBtn.MouseEnter:Connect(function() 
         animate(settingsBtn, {BackgroundColor3 = Theme.Accent, TextColor3 = Theme.Background}) 
     end)
@@ -607,7 +595,7 @@ function Library:CreateWindow(config)
         settingsMenu.Visible = not settingsMenu.Visible
     end)
 
-    -- Live Stats Logic Loops
+    -- Live Stats Calculation
     local frames = 0
     local lastUpdate = os.clock()
     RunService.RenderStepped:Connect(function()
@@ -622,7 +610,6 @@ function Library:CreateWindow(config)
         end
     end)
 
-    -- Accurate Network Ping Calculation
     task.spawn(function()
         while task.wait(1) do
             local pingVal = 0
@@ -674,7 +661,6 @@ function Library:CreateWindow(config)
             end
         end)
 
-        -- Discord Icon (Fixed raw link)
         local discordBtn = Instance.new("ImageButton")
         discordBtn.Size = UDim2.new(0, 24, 0, 24)
         discordBtn.Position = UDim2.new(1, -36, 0, 12)
@@ -687,7 +673,6 @@ function Library:CreateWindow(config)
         discordBtn.MouseLeave:Connect(function() animate(discordBtn, {Size = UDim2.new(0, 24, 0, 24), Position = UDim2.new(1, -36, 0, 12)}) end)
         discordBtn.MouseButton1Click:Connect(function() if setclipboard and keySettings.Discord then setclipboard(keySettings.Discord) end end)
 
-        -- Center Main Logo (Fixed raw link)
         local logoLabel = Instance.new("ImageLabel")
         logoLabel.Size = UDim2.new(0, 100, 0, 100)
         logoLabel.Position = UDim2.new(0.5, -50, 0.1, 0)
@@ -697,7 +682,6 @@ function Library:CreateWindow(config)
         logoLabel.ZIndex = 101
         logoLabel.Parent = keyModal
 
-        -- Dark Key TextBox
         local keyInput = Instance.new("TextBox")
         keyInput.Size = UDim2.new(0, 300, 0, 46)
         keyInput.Position = UDim2.new(0.5, -150, 0.52, 0)
@@ -713,7 +697,6 @@ function Library:CreateWindow(config)
         createCorner(keyInput, 8)
         createStroke(keyInput, Theme.Stroke)
 
-        -- Verify Button
         local checkBtn = Instance.new("TextButton")
         checkBtn.Size = UDim2.new(0, 140, 0, 42)
         checkBtn.Position = UDim2.new(0.5, -70, 0.72, 0)
@@ -796,7 +779,7 @@ function Library:CreateTab(tabName)
     container.Position = UDim2.new(0, 8, 0, 8)
     container.BackgroundTransparency = 1
     container.BorderSizePixel = 0
-    container.ScrollBarThickness = 0 -- Hides the scrollbar completely while preserving scroll behavior
+    container.ScrollBarThickness = 0
     container.ZIndex = 4
     container.Parent = pageFrame
     createPadding(container, 2, 2, 2, 2)
@@ -895,7 +878,7 @@ function Tab:CreateToggle(label, defaultState, callback)
     end)
 end
 
--- Component Method: CreateButton (Supports optional keybind)
+-- Component Method: CreateButton
 function Tab:CreateButton(label, buttonText, defaultKey, callback)
     if type(defaultKey) == "function" then
         callback = defaultKey
