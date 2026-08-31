@@ -182,9 +182,23 @@ function Library:CreateWindow(config)
         Tabs = {},
         ActiveTab = nil,
         TabHolder = nil,
-        PageHolder = nil
+        PageHolder = nil,
+        Elements = {}
     }
     setmetatable(windowObj, Library)
+
+    function windowObj:GetElementTransparency()
+        local isDarkTheme = (Config.ThemeName == "Dark Theme") or (Config.BackgroundImageId == "")
+        return isDarkTheme and 0 or 0.35
+    end
+
+    function windowObj:RegisterElement(element, customTransparency)
+        table.insert(windowObj.Elements, {
+            Instance = element,
+            CustomTransparency = customTransparency
+        })
+        element.BackgroundTransparency = customTransparency or windowObj:GetElementTransparency()
+    end
 
     -- Master Container
     local outerContainer = Instance.new("Frame")
@@ -284,6 +298,7 @@ function Library:CreateWindow(config)
         local isDarkTheme = (Config.ThemeName == "Dark Theme") or (Config.BackgroundImageId == "")
         local panelTransparency = isDarkTheme and 0 or 0.45
         local imgTransparency = isDarkTheme and 1 or Config.BackgroundTransparency
+        local elemTransparency = windowObj:GetElementTransparency()
 
         for _, panel in ipairs(panels) do
             panel.BackgroundTransparency = panelTransparency
@@ -292,6 +307,12 @@ function Library:CreateWindow(config)
         for _, bg in ipairs(bgImages) do
             bg.Image = Config.BackgroundImageId
             bg.ImageTransparency = imgTransparency
+        end
+
+        for _, elemData in ipairs(windowObj.Elements) do
+            if elemData.Instance and elemData.Instance.Parent then
+                elemData.Instance.BackgroundTransparency = elemData.CustomTransparency or elemTransparency
+            end
         end
     end
 
@@ -348,7 +369,6 @@ function Library:CreateWindow(config)
     closeBtn.Size = UDim2.new(0, 26, 0, 26)
     closeBtn.Position = UDim2.new(1, -34, 0.5, -13)
     closeBtn.BackgroundColor3 = Theme.Surface
-    closeBtn.BackgroundTransparency = 0
     closeBtn.Text = "X"
     closeBtn.TextColor3 = Theme.SubText
     closeBtn.Font = Enum.Font.GothamBold
@@ -357,9 +377,10 @@ function Library:CreateWindow(config)
     closeBtn.Parent = topBar
     createCorner(closeBtn, 6)
     createStroke(closeBtn, Theme.Stroke)
+    windowObj:RegisterElement(closeBtn)
 
     closeBtn.MouseEnter:Connect(function() animate(closeBtn, {BackgroundColor3 = Theme.Danger, TextColor3 = Theme.Accent, BackgroundTransparency = 0}) end)
-    closeBtn.MouseLeave:Connect(function() animate(closeBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Theme.SubText, BackgroundTransparency = 0}) end)
+    closeBtn.MouseLeave:Connect(function() animate(closeBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Theme.SubText, BackgroundTransparency = windowObj:GetElementTransparency()}) end)
     closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 
     -- 2. Content Area
@@ -393,12 +414,12 @@ function Library:CreateWindow(config)
     settingsToggleFrame.Size = UDim2.new(1, -24, 0, 42)
     settingsToggleFrame.Position = UDim2.new(0, 12, 0, 16)
     settingsToggleFrame.BackgroundColor3 = Theme.Surface
-    settingsToggleFrame.BackgroundTransparency = 0
     settingsToggleFrame.ZIndex = 11
     settingsToggleFrame.Parent = settingsMenu
     createCorner(settingsToggleFrame, 6)
     createStroke(settingsToggleFrame, Theme.Stroke)
     createPadding(settingsToggleFrame, 0, 0, 4, 12)
+    windowObj:RegisterElement(settingsToggleFrame)
 
     local stText = Instance.new("TextLabel")
     stText.Size = UDim2.new(0.6, 0, 1, 0)
@@ -456,12 +477,12 @@ function Library:CreateWindow(config)
     themeFrame.Size = UDim2.new(1, -24, 0, 42)
     themeFrame.Position = UDim2.new(0, 12, 0, 68)
     themeFrame.BackgroundColor3 = Theme.Surface
-    themeFrame.BackgroundTransparency = 0
     themeFrame.ZIndex = 11
     themeFrame.Parent = settingsMenu
     createCorner(themeFrame, 6)
     createStroke(themeFrame, Theme.Stroke)
     createPadding(themeFrame, 0, 0, 4, 12)
+    windowObj:RegisterElement(themeFrame)
 
     local themeText = Instance.new("TextLabel")
     themeText.Size = UDim2.new(0.38, 0, 1, 0)
@@ -478,7 +499,6 @@ function Library:CreateWindow(config)
     themeButton.Size = UDim2.new(0, 150, 0, 26)
     themeButton.Position = UDim2.new(1, -150, 0.5, -13)
     themeButton.BackgroundColor3 = Theme.Background
-    themeButton.BackgroundTransparency = 0
     themeButton.Text = Config.ThemeName .. "  v"
     themeButton.TextColor3 = Theme.SubText
     themeButton.Font = Enum.Font.Gotham
@@ -487,6 +507,7 @@ function Library:CreateWindow(config)
     themeButton.Parent = themeFrame
     createCorner(themeButton, 6)
     createStroke(themeButton, Theme.Stroke)
+    windowObj:RegisterElement(themeButton)
 
     local themeList = Instance.new("Frame")
     themeList.Size = UDim2.new(0, 150, 0, 60)
@@ -535,12 +556,12 @@ function Library:CreateWindow(config)
     settingsKeybindFrame.Size = UDim2.new(1, -24, 0, 42)
     settingsKeybindFrame.Position = UDim2.new(0, 12, 0, 120)
     settingsKeybindFrame.BackgroundColor3 = Theme.Surface
-    settingsKeybindFrame.BackgroundTransparency = 0
     settingsKeybindFrame.ZIndex = 11
     settingsKeybindFrame.Parent = settingsMenu
     createCorner(settingsKeybindFrame, 6)
     createStroke(settingsKeybindFrame, Theme.Stroke)
     createPadding(settingsKeybindFrame, 0, 0, 4, 12)
+    windowObj:RegisterElement(settingsKeybindFrame)
 
     local skText = Instance.new("TextLabel")
     skText.Size = UDim2.new(0.6, 0, 1, 0)
@@ -557,7 +578,6 @@ function Library:CreateWindow(config)
     skBtn.Size = UDim2.new(0, 65, 0, 24)
     skBtn.Position = UDim2.new(1, -65, 0.5, -12)
     skBtn.BackgroundColor3 = Theme.Background
-    skBtn.BackgroundTransparency = 0
     skBtn.Text = currentToggleKey.Name
     skBtn.TextColor3 = Theme.SubText
     skBtn.Font = Enum.Font.Gotham
@@ -566,6 +586,7 @@ function Library:CreateWindow(config)
     skBtn.Parent = settingsKeybindFrame
     createCorner(skBtn, 6)
     createStroke(skBtn, Theme.Stroke)
+    windowObj:RegisterElement(skBtn)
 
     local skBinding = false
     skBtn.MouseButton1Click:Connect(function()
@@ -590,7 +611,6 @@ function Library:CreateWindow(config)
     closeSettingsBtn.Size = UDim2.new(0, 100, 0, 30)
     closeSettingsBtn.Position = UDim2.new(0.5, -50, 1, -45)
     closeSettingsBtn.BackgroundColor3 = Theme.Surface
-    closeSettingsBtn.BackgroundTransparency = 0
     closeSettingsBtn.Text = "Back"
     closeSettingsBtn.TextColor3 = Theme.Accent
     closeSettingsBtn.Font = Enum.Font.GothamBold
@@ -599,6 +619,7 @@ function Library:CreateWindow(config)
     closeSettingsBtn.Parent = settingsMenu
     createCorner(closeSettingsBtn, 6)
     createStroke(closeSettingsBtn, Theme.Stroke)
+    windowObj:RegisterElement(closeSettingsBtn)
 
     closeSettingsBtn.MouseButton1Click:Connect(function()
         settingsMenu.Visible = false
@@ -620,21 +641,21 @@ function Library:CreateWindow(config)
     local fpsWrapper = Instance.new("Frame")
     fpsWrapper.Size = UDim2.new(0, 105, 1, 0)
     fpsWrapper.BackgroundColor3 = Theme.Surface
-    fpsWrapper.BackgroundTransparency = 0
     fpsWrapper.ZIndex = 3
     fpsWrapper.Parent = bottomBar
     createCorner(fpsWrapper, 6)
     createStroke(fpsWrapper, Theme.Stroke)
+    windowObj:RegisterElement(fpsWrapper)
     
     local pingWrapper = Instance.new("Frame")
     pingWrapper.Size = UDim2.new(0, 115, 1, 0)
     pingWrapper.Position = UDim2.new(0, 113, 0, 0)
     pingWrapper.BackgroundColor3 = Theme.Surface
-    pingWrapper.BackgroundTransparency = 0
     pingWrapper.ZIndex = 3
     pingWrapper.Parent = bottomBar
     createCorner(pingWrapper, 6)
     createStroke(pingWrapper, Theme.Stroke)
+    windowObj:RegisterElement(pingWrapper)
 
     local fpsLabel = createStatusTag(fpsWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/speed.png", "FPS_icon.png", "FPS", 0, 105)
     local pingLabel = createStatusTag(pingWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/network.png", "PING_icon.png", "PING", 0, 115)
@@ -643,7 +664,6 @@ function Library:CreateWindow(config)
     settingsBtn.Size = UDim2.new(0, 32, 0, 32)
     settingsBtn.Position = UDim2.new(1, -32, 0.5, -16)
     settingsBtn.BackgroundColor3 = Theme.Surface
-    settingsBtn.BackgroundTransparency = 0
     settingsBtn.Text = "⚙"
     settingsBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     settingsBtn.Font = Enum.Font.GothamBold
@@ -652,12 +672,13 @@ function Library:CreateWindow(config)
     settingsBtn.Parent = bottomBar
     createCorner(settingsBtn, 6)
     createStroke(settingsBtn, Theme.Stroke)
+    windowObj:RegisterElement(settingsBtn)
 
     settingsBtn.MouseEnter:Connect(function() 
         animate(settingsBtn, {BackgroundColor3 = Theme.Accent, TextColor3 = Theme.Background, BackgroundTransparency = 0}) 
     end)
     settingsBtn.MouseLeave:Connect(function() 
-        animate(settingsBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Color3.fromRGB(255, 255, 255), BackgroundTransparency = 0}) 
+        animate(settingsBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Color3.fromRGB(255, 255, 255), BackgroundTransparency = windowObj:GetElementTransparency()}) 
     end)
     settingsBtn.MouseButton1Click:Connect(function()
         settingsMenu.Visible = not settingsMenu.Visible
@@ -869,7 +890,8 @@ function Library:CreateTab(tabName)
     local tabObj = {
         Button = tabBtn,
         Page = pageFrame,
-        Container = container 
+        Container = container,
+        Window = window
     }
     setmetatable(tabObj, Tab)
     table.insert(window.Tabs, tabObj)
@@ -894,16 +916,17 @@ end
 function Tab:CreateToggle(label, defaultState, callback)
     callback = callback or function() end
     local state = defaultState or false
+    local window = self.Window
 
     local toggleFrame = Instance.new("Frame")
     toggleFrame.Size = UDim2.new(1, 0, 0, 42)
     toggleFrame.BackgroundColor3 = Theme.Surface
-    toggleFrame.BackgroundTransparency = 0
     toggleFrame.ZIndex = 5
     toggleFrame.Parent = self.Container
     createCorner(toggleFrame, 6)
     createStroke(toggleFrame, Theme.Stroke)
     createPadding(toggleFrame, 0, 0, 4, 12)
+    window:RegisterElement(toggleFrame)
 
     local textLabel = Instance.new("TextLabel")
     textLabel.Size = UDim2.new(0.6, 0, 1, 0)
@@ -965,16 +988,17 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
     callback = callback or function() end
     buttonText = buttonText or "Button"
     local currentKey = defaultKey
+    local window = self.Window
 
     local containerFrame = Instance.new("Frame")
     containerFrame.Size = UDim2.new(1, 0, 0, 42)
     containerFrame.BackgroundColor3 = Theme.Surface
-    containerFrame.BackgroundTransparency = 0
     containerFrame.ZIndex = 5
     containerFrame.Parent = self.Container
     createCorner(containerFrame, 6)
     createStroke(containerFrame, Theme.Stroke)
     createPadding(containerFrame, 0, 0, 4, 12)
+    window:RegisterElement(containerFrame)
 
     local textLabel = Instance.new("TextLabel")
     textLabel.Size = UDim2.new(0.4, 0, 1, 0)
@@ -992,7 +1016,6 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
     actionBtn.Size = UDim2.new(0, actionBtnWidth, 0, 24)
     actionBtn.Position = UDim2.new(1, -actionBtnWidth, 0.5, -12)
     actionBtn.BackgroundColor3 = Theme.SurfaceElevated
-    actionBtn.BackgroundTransparency = 0
     actionBtn.Text = buttonText
     actionBtn.TextColor3 = Theme.Accent
     actionBtn.Font = Enum.Font.GothamMedium
@@ -1001,9 +1024,10 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
     actionBtn.Parent = containerFrame
     createCorner(actionBtn, 6)
     createStroke(actionBtn, Theme.Stroke)
+    window:RegisterElement(actionBtn)
 
     actionBtn.MouseEnter:Connect(function() animate(actionBtn, {BackgroundColor3 = Theme.Stroke, BackgroundTransparency = 0}) end)
-    actionBtn.MouseLeave:Connect(function() animate(actionBtn, {BackgroundColor3 = Theme.SurfaceElevated, BackgroundTransparency = 0}) end)
+    actionBtn.MouseLeave:Connect(function() animate(actionBtn, {BackgroundColor3 = Theme.SurfaceElevated, BackgroundTransparency = window:GetElementTransparency()}) end)
 
     actionBtn.MouseButton1Click:Connect(function()
         task.spawn(callback, currentKey)
@@ -1014,7 +1038,6 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
         keybindBtn.Size = UDim2.new(0, 40, 0, 24)
         keybindBtn.Position = UDim2.new(1, -(actionBtnWidth + 46), 0.5, -12)
         keybindBtn.BackgroundColor3 = Theme.Background
-        keybindBtn.BackgroundTransparency = 0
         keybindBtn.Text = currentKey.Name
         keybindBtn.TextColor3 = Theme.SubText
         keybindBtn.Font = Enum.Font.Gotham
@@ -1023,6 +1046,7 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
         keybindBtn.Parent = containerFrame
         createCorner(keybindBtn, 6)
         createStroke(keybindBtn, Theme.Stroke)
+        window:RegisterElement(keybindBtn)
 
         local binding = false
         keybindBtn.MouseButton1Click:Connect(function()
@@ -1063,16 +1087,17 @@ function Tab:CreateSlider(label, min, max, defaultVal, callback)
     min = min or 0
     max = max or 100
     defaultVal = math.clamp(defaultVal or min, min, max)
+    local window = self.Window
 
     local sliderFrame = Instance.new("Frame")
     sliderFrame.Size = UDim2.new(1, 0, 0, 46)
     sliderFrame.BackgroundColor3 = Theme.Surface
-    sliderFrame.BackgroundTransparency = 0
     sliderFrame.ZIndex = 5
     sliderFrame.Parent = self.Container
     createCorner(sliderFrame, 6)
     createStroke(sliderFrame, Theme.Stroke)
     createPadding(sliderFrame, 0, 0, 4, 12)
+    window:RegisterElement(sliderFrame)
 
     local textLabel = Instance.new("TextLabel")
     textLabel.Size = UDim2.new(0.35, 0, 1, 0)
@@ -1089,11 +1114,11 @@ function Tab:CreateSlider(label, min, max, defaultVal, callback)
     track.Size = UDim2.new(0, 120, 0, 10)
     track.Position = UDim2.new(1, -155, 0.5, -5)
     track.BackgroundColor3 = Theme.Background
-    track.BackgroundTransparency = 0
     track.ZIndex = 6
     track.Parent = sliderFrame
     createCorner(track, 10)
     createStroke(track, Theme.Stroke)
+    window:RegisterElement(track)
 
     local initialPercent = (defaultVal - min) / (max - min)
 
