@@ -24,7 +24,8 @@ local Config = {
     FPSCounterEnabled = false,
     ToggleKey = "RightShift",
     BackgroundEnabled = true,
-    BackgroundImageId = "rbxassetid://6071575925", -- Black Hole Texture Asset
+    ThemeName = "Black Hole",
+    BackgroundImageId = "rbxassetid://6071575925",
     BackgroundTransparency = 0.2
 }
 
@@ -51,6 +52,18 @@ local function LoadConfig()
 end
 
 LoadConfig()
+
+local ThemeOptions = {
+    ["Black Hole"] = "rbxassetid://6071575925",
+    ["Lace"] = "rbxassetid://13803685738",
+    ["Nebula"] = "rbxassetid://11959884745",
+    ["Ocean"] = "rbxassetid://1839939207"
+}
+
+if not ThemeOptions[Config.ThemeName] then
+    Config.ThemeName = "Black Hole"
+end
+Config.BackgroundImageId = ThemeOptions[Config.ThemeName]
 
 -- Design System Constants
 local Theme = {
@@ -248,12 +261,26 @@ function Library:CreateWindow(config)
     mainApp.ZIndex = 2
     mainApp.Parent = outerContainer
 
+    -- Full-window background layer. mainApp clips it to the rounded interface bounds.
+    local bgImage = Instance.new("ImageLabel")
+    bgImage.Name = "BackgroundImage"
+    bgImage.Size = UDim2.new(1, 0, 1, 0)
+    bgImage.Position = UDim2.new(0, 0, 0, 0)
+    bgImage.BackgroundTransparency = 1
+    bgImage.Image = Config.BackgroundImageId
+    bgImage.ImageTransparency = Config.BackgroundTransparency
+    bgImage.ScaleType = Enum.ScaleType.Crop
+    bgImage.ZIndex = 1
+    bgImage.Visible = Config.BackgroundEnabled
+    bgImage.Parent = mainApp
+    createCorner(bgImage, 8)
+
     -- 1. Top Navigation Bar (Opaque Solid Surface)
     local topBar = Instance.new("Frame")
     topBar.Name = "TopBar"
     topBar.Size = UDim2.new(1, 0, 0, 44)
     topBar.BackgroundColor3 = Theme.Background
-    topBar.BackgroundTransparency = 0
+    topBar.BackgroundTransparency = Config.BackgroundEnabled and 0.35 or 0
     topBar.BorderSizePixel = 0
     topBar.ZIndex = 2
     topBar.Parent = mainApp
@@ -320,27 +347,14 @@ function Library:CreateWindow(config)
     contentArea.Size = UDim2.new(1, 0, 1, -110) 
     contentArea.Position = UDim2.new(0, 0, 0, 54) 
     contentArea.BackgroundColor3 = Theme.Background
-    contentArea.BackgroundTransparency = 0.35
+    -- Keep the panel translucent so the clipped background image can be seen.
+    contentArea.BackgroundTransparency = Config.BackgroundEnabled and 0.35 or 0
     contentArea.BorderSizePixel = 0
     contentArea.ClipsDescendants = true
     contentArea.ZIndex = 2
     contentArea.Parent = mainApp
     createCorner(contentArea, 8)
     createStroke(contentArea, Theme.Stroke)
-
-    -- Background is clipped to the inner content area only.
-    local bgImage = Instance.new("ImageLabel")
-    bgImage.Name = "BackgroundImage"
-    bgImage.Size = UDim2.new(1, 0, 1, 0)
-    bgImage.Position = UDim2.new(0, 0, 0, 0)
-    bgImage.BackgroundTransparency = 1
-    bgImage.Image = Config.BackgroundImageId
-    bgImage.ImageTransparency = Config.BackgroundTransparency
-    bgImage.ScaleType = Enum.ScaleType.Crop
-    bgImage.ZIndex = 1
-    bgImage.Visible = Config.BackgroundEnabled
-    bgImage.Parent = contentArea
-    createCorner(bgImage, 8)
 
     windowObj.PageHolder = contentArea
 
@@ -413,10 +427,86 @@ function Library:CreateWindow(config)
         SaveConfig()
     end)
 
-    -- Settings Item 2: Background Image Toggle
+    -- Settings Item 2: Theme Selector
+    local themeFrame = Instance.new("Frame")
+    themeFrame.Size = UDim2.new(1, -24, 0, 42)
+    themeFrame.Position = UDim2.new(0, 12, 0, 68)
+    themeFrame.BackgroundColor3 = Theme.Surface
+    themeFrame.ZIndex = 11
+    themeFrame.Parent = settingsMenu
+    createCorner(themeFrame, 6)
+    createStroke(themeFrame, Theme.Stroke)
+    createPadding(themeFrame, 0, 0, 4, 12)
+
+    local themeText = Instance.new("TextLabel")
+    themeText.Size = UDim2.new(0.38, 0, 1, 0)
+    themeText.BackgroundTransparency = 1
+    themeText.Text = "Theme"
+    themeText.TextColor3 = Theme.Text
+    themeText.Font = Enum.Font.GothamMedium
+    themeText.TextSize = 13
+    themeText.TextXAlignment = Enum.TextXAlignment.Left
+    themeText.ZIndex = 12
+    themeText.Parent = themeFrame
+
+    local themeButton = Instance.new("TextButton")
+    themeButton.Size = UDim2.new(0, 150, 0, 26)
+    themeButton.Position = UDim2.new(1, -150, 0.5, -13)
+    themeButton.BackgroundColor3 = Theme.Background
+    themeButton.Text = Config.ThemeName .. "  v"
+    themeButton.TextColor3 = Theme.SubText
+    themeButton.Font = Enum.Font.Gotham
+    themeButton.TextSize = 11
+    themeButton.ZIndex = 14
+    themeButton.Parent = themeFrame
+    createCorner(themeButton, 6)
+    createStroke(themeButton, Theme.Stroke)
+
+    local themeList = Instance.new("Frame")
+    themeList.Size = UDim2.new(0, 150, 0, 132)
+    themeList.Position = UDim2.new(1, -150, 1, 4)
+    themeList.BackgroundColor3 = Theme.SurfaceElevated
+    themeList.Visible = false
+    themeList.ZIndex = 30
+    themeList.Parent = themeFrame
+    createCorner(themeList, 6)
+    createStroke(themeList, Theme.Stroke)
+    createPadding(themeList, 4, 4, 4, 4)
+
+    local themeLayout = Instance.new("UIListLayout")
+    themeLayout.Padding = UDim.new(0, 2)
+    themeLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    themeLayout.Parent = themeList
+
+    for themeName, imageId in pairs(ThemeOptions) do
+        local option = Instance.new("TextButton")
+        option.Size = UDim2.new(1, 0, 0, 26)
+        option.BackgroundColor3 = Theme.SurfaceElevated
+        option.BackgroundTransparency = 1
+        option.Text = themeName
+        option.TextColor3 = Theme.Text
+        option.Font = Enum.Font.Gotham
+        option.TextSize = 11
+        option.ZIndex = 31
+        option.Parent = themeList
+        option.MouseButton1Click:Connect(function()
+            Config.ThemeName = themeName
+            Config.BackgroundImageId = imageId
+            bgImage.Image = imageId
+            themeButton.Text = themeName .. "  v"
+            themeList.Visible = false
+            SaveConfig()
+        end)
+    end
+
+    themeButton.MouseButton1Click:Connect(function()
+        themeList.Visible = not themeList.Visible
+    end)
+
+    -- Settings Item 3: Theme Enabled Toggle
     local bgToggleFrame = Instance.new("Frame")
     bgToggleFrame.Size = UDim2.new(1, -24, 0, 42)
-    bgToggleFrame.Position = UDim2.new(0, 12, 0, 68)
+    bgToggleFrame.Position = UDim2.new(0, 12, 0, 120)
     bgToggleFrame.BackgroundColor3 = Theme.Surface
     bgToggleFrame.ZIndex = 11
     bgToggleFrame.Parent = settingsMenu
@@ -427,7 +517,7 @@ function Library:CreateWindow(config)
     local bgText = Instance.new("TextLabel")
     bgText.Size = UDim2.new(0.6, 0, 1, 0)
     bgText.BackgroundTransparency = 1
-    bgText.Text = "Background Image"
+    bgText.Text = "Theme Enabled"
     bgText.TextColor3 = Theme.Text
     bgText.Font = Enum.Font.GothamMedium
     bgText.TextSize = 13
@@ -462,6 +552,11 @@ function Library:CreateWindow(config)
     bgBtn.MouseButton1Click:Connect(function()
         Config.BackgroundEnabled = not Config.BackgroundEnabled
         bgImage.Visible = Config.BackgroundEnabled
+        -- Restore opaque surfaces when disabled; reveal the image across all three bars when enabled.
+        local surfaceTransparency = Config.BackgroundEnabled and 0.35 or 0
+        topBar.BackgroundTransparency = surfaceTransparency
+        contentArea.BackgroundTransparency = surfaceTransparency
+        bottomBar.BackgroundTransparency = surfaceTransparency
         bgTrackStroke.Color = Config.BackgroundEnabled and Theme.Accent or Theme.Stroke
         animate(bgTrack, {BackgroundColor3 = Config.BackgroundEnabled and Theme.Accent or Theme.Background})
         animate(bgKnob, {
@@ -474,7 +569,7 @@ function Library:CreateWindow(config)
     -- Settings Item 3: Menu Toggle Key
     local settingsKeybindFrame = Instance.new("Frame")
     settingsKeybindFrame.Size = UDim2.new(1, -24, 0, 42)
-    settingsKeybindFrame.Position = UDim2.new(0, 12, 0, 120)
+    settingsKeybindFrame.Position = UDim2.new(0, 12, 0, 172)
     settingsKeybindFrame.BackgroundColor3 = Theme.Surface
     settingsKeybindFrame.ZIndex = 11
     settingsKeybindFrame.Parent = settingsMenu
@@ -548,7 +643,7 @@ function Library:CreateWindow(config)
     bottomBar.Size = UDim2.new(1, 0, 0, 46)
     bottomBar.Position = UDim2.new(0, 0, 1, -46)
     bottomBar.BackgroundColor3 = Theme.Background
-    bottomBar.BackgroundTransparency = 0
+    bottomBar.BackgroundTransparency = Config.BackgroundEnabled and 0.35 or 0
     bottomBar.ZIndex = 2
     bottomBar.Parent = mainApp
     createCorner(bottomBar, 8)
