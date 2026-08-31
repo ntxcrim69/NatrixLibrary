@@ -25,7 +25,7 @@ local Config = {
     ToggleKey = "RightShift",
     ThemeName = "Black Hole",
     BackgroundImageId = "rbxassetid://134736124666311",
-    BackgroundTransparency = 0.55
+    BackgroundTransparency = 0
 }
 
 local function SaveConfig()
@@ -64,13 +64,13 @@ Config.BackgroundImageId = ThemeOptions[Config.ThemeName]
 
 -- Design System Constants
 local Theme = {
-    Background = Color3.fromRGB(5, 5, 5),         -- Pitch Black (#050505)
-    Surface = Color3.fromRGB(12, 12, 12),         -- Deep gray for panels
-    SurfaceElevated = Color3.fromRGB(18, 18, 18),
-    Stroke = Color3.fromRGB(45, 45, 45),          -- Crisp contrast border
+    Background = Color3.fromRGB(5, 5, 5),         -- Solid pitch black base
+    Surface = Color3.fromRGB(15, 15, 15),        -- Deep dark gray for element cards
+    SurfaceElevated = Color3.fromRGB(25, 25, 25),
+    Stroke = Color3.fromRGB(45, 45, 45),          -- Border contrast stroke
     Accent = Color3.fromRGB(255, 255, 255),       -- Pure White
     Text = Color3.fromRGB(255, 255, 255),         -- Pure White
-    SubText = Color3.fromRGB(160, 160, 160),      -- Light gray for inactive text
+    SubText = Color3.fromRGB(160, 160, 160),      -- Muted gray for inactive text
     Danger = Color3.fromRGB(255, 55, 55)
 }
 
@@ -117,7 +117,6 @@ local function FetchExternalImage(url, fileName, fallbackAssetId)
     
     local success, asset = pcall(function()
         if isfile and writefile and getcustomasset then
-            -- Clean empty or 404 cached files from previous failed downloads
             if isfile(fileName) and readfile then
                 local content = readfile(fileName)
                 if #content == 0 or content:find("404") or content:find("400") then
@@ -205,7 +204,7 @@ function Library:CreateWindow(config)
 
     function windowObj:GetElementTransparency()
         local isDarkTheme = (Config.ThemeName == "Dark Theme") or (Config.BackgroundImageId == "")
-        return isDarkTheme and 0 or 0.25
+        return isDarkTheme and 0 or 0.45
     end
 
     function windowObj:RegisterElement(element, customTransparency)
@@ -216,14 +215,31 @@ function Library:CreateWindow(config)
         element.BackgroundTransparency = customTransparency or windowObj:GetElementTransparency()
     end
 
-    -- Master Container
+    -- Master Outer Container with Solid Base to Prevent Game Bleed
     local outerContainer = Instance.new("Frame")
     outerContainer.Name = "OuterContainer"
     outerContainer.Size = UDim2.new(0, 600, 0, 480)
     outerContainer.Position = UDim2.new(0.5, -300, 0.5, -240)
-    outerContainer.BackgroundTransparency = 1
+    outerContainer.BackgroundColor3 = Theme.Background
+    outerContainer.BackgroundTransparency = 0
+    outerContainer.ClipsDescendants = true
     outerContainer.ZIndex = 1
     outerContainer.Parent = screenGui
+    createCorner(outerContainer, 6)
+    createStroke(outerContainer, Theme.Stroke, 1)
+
+    -- Full-Size Single Background Image (Placed directly behind the menu structure)
+    local mainBgImage = Instance.new("ImageLabel")
+    mainBgImage.Name = "MainBgImage"
+    mainBgImage.Size = UDim2.new(1, 0, 1, 0)
+    mainBgImage.Position = UDim2.new(0, 0, 0, 0)
+    mainBgImage.BackgroundTransparency = 1
+    mainBgImage.Image = Config.BackgroundImageId
+    mainBgImage.ImageTransparency = 0 -- Keeps artwork 100% opaque
+    mainBgImage.ImageColor3 = Color3.fromRGB(120, 120, 120) -- Darkened tint to soften bright white highlights
+    mainBgImage.ScaleType = Enum.ScaleType.Crop
+    mainBgImage.ZIndex = 1
+    mainBgImage.Parent = outerContainer
 
     local currentToggleKey = Enum.KeyCode[Config.ToggleKey] or Enum.KeyCode.RightShift
 
@@ -288,44 +304,14 @@ function Library:CreateWindow(config)
     mainApp.ZIndex = 2
     mainApp.Parent = outerContainer
 
-    local bgImages = {}
-    local panels = {}
-
-    local function addPanelBackground(panel, yOffset)
-        panel.ClipsDescendants = true
-        panel.BackgroundColor3 = Theme.Background
-        panel.BackgroundTransparency = 0 -- Opaque base blocks game background
-        table.insert(panels, panel)
-
-        local bg = Instance.new("ImageLabel")
-        bg.Name = "PanelBackgroundImage"
-        bg.Size = UDim2.new(1, 0, 0, 480)
-        bg.Position = UDim2.new(0, 0, 0, -yOffset)
-        bg.BackgroundTransparency = 1
-        bg.Image = Config.BackgroundImageId
-        bg.ImageTransparency = Config.BackgroundTransparency
-        bg.ScaleType = Enum.ScaleType.Crop
-        bg.ZIndex = 1
-        bg.Parent = panel
-        createCorner(bg, 4)
-        table.insert(bgImages, bg)
-        return bg
-    end
-
     local function updateTheme()
         local isDarkTheme = (Config.ThemeName == "Dark Theme") or (Config.BackgroundImageId == "")
-        local imgTransparency = isDarkTheme and 1 or Config.BackgroundTransparency
+        mainBgImage.Image = Config.BackgroundImageId
+        mainBgImage.Visible = not isDarkTheme
+        mainBgImage.ImageTransparency = 0
+        mainBgImage.ImageColor3 = Color3.fromRGB(120, 120, 120)
+
         local elemTransparency = windowObj:GetElementTransparency()
-
-        for _, panel in ipairs(panels) do
-            panel.BackgroundColor3 = Theme.Background
-            panel.BackgroundTransparency = 0 -- Keeps solid black backing behind background image
-        end
-
-        for _, bg in ipairs(bgImages) do
-            bg.Image = Config.BackgroundImageId
-            bg.ImageTransparency = imgTransparency
-        end
 
         for _, elemData in ipairs(windowObj.Elements) do
             if elemData.Instance and elemData.Instance.Parent then
@@ -334,18 +320,17 @@ function Library:CreateWindow(config)
         end
     end
 
-    -- 1. Top Navigation Bar
+    -- 1. Top Navigation Bar (Transparent overlay revealing background)
     local topBar = Instance.new("Frame")
     topBar.Name = "TopBar"
     topBar.Size = UDim2.new(1, 0, 0, 44)
-    topBar.BackgroundColor3 = Theme.Background
-    topBar.BackgroundTransparency = 0
+    topBar.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    topBar.BackgroundTransparency = 0.35
     topBar.BorderSizePixel = 0
     topBar.ZIndex = 2
     topBar.Parent = mainApp
     createCorner(topBar, 4)
     createStroke(topBar, Theme.Stroke)
-    addPanelBackground(topBar, 0)
 
     local dragging, dragInput, dragStart, startPos
     topBar.InputBegan:Connect(function(input)
@@ -402,19 +387,18 @@ function Library:CreateWindow(config)
     closeBtn.MouseLeave:Connect(function() animate(closeBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Theme.SubText, BackgroundTransparency = windowObj:GetElementTransparency()}) end)
     closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 
-    -- 2. Content Area
+    -- 2. Main Content Area (Transparent overlay)
     local contentArea = Instance.new("Frame")
     contentArea.Name = "ContentArea"
-    contentArea.Size = UDim2.new(1, 0, 1, -110) 
-    contentArea.Position = UDim2.new(0, 0, 0, 54) 
-    contentArea.BackgroundColor3 = Theme.Background
-    contentArea.BackgroundTransparency = 0
+    contentArea.Size = UDim2.new(1, 0, 1, -100) 
+    contentArea.Position = UDim2.new(0, 0, 0, 48) 
+    contentArea.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    contentArea.BackgroundTransparency = 0.35
     contentArea.BorderSizePixel = 0
     contentArea.ZIndex = 2
     contentArea.Parent = mainApp
     createCorner(contentArea, 4)
     createStroke(contentArea, Theme.Stroke)
-    addPanelBackground(contentArea, 54)
 
     windowObj.PageHolder = contentArea
 
@@ -422,8 +406,8 @@ function Library:CreateWindow(config)
     local settingsMenu = Instance.new("Frame")
     settingsMenu.Name = "SettingsMenu"
     settingsMenu.Size = UDim2.new(1, 0, 1, 0)
-    settingsMenu.BackgroundColor3 = Theme.Background
-    settingsMenu.BackgroundTransparency = 0
+    settingsMenu.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    settingsMenu.BackgroundTransparency = 0.15
     settingsMenu.Visible = false
     settingsMenu.ZIndex = 10
     settingsMenu.Parent = contentArea
@@ -645,18 +629,17 @@ function Library:CreateWindow(config)
         settingsMenu.Visible = false
     end)
 
-    -- 4. Bottom Status Bar
+    -- 4. Bottom Status Bar (Transparent overlay)
     local bottomBar = Instance.new("Frame")
     bottomBar.Name = "BottomBar"
     bottomBar.Size = UDim2.new(1, 0, 0, 46)
     bottomBar.Position = UDim2.new(0, 0, 1, -46)
-    bottomBar.BackgroundColor3 = Theme.Background
-    bottomBar.BackgroundTransparency = 0
+    bottomBar.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    bottomBar.BackgroundTransparency = 0.35
     bottomBar.ZIndex = 2
     bottomBar.Parent = mainApp
     createCorner(bottomBar, 4)
     createStroke(bottomBar, Theme.Stroke)
-    addPanelBackground(bottomBar, 434)
 
     local bottomContent = Instance.new("Frame")
     bottomContent.Name = "BottomContent"
@@ -946,7 +929,7 @@ function Library:CreateTab(tabName)
             animate(t.Button, {TextColor3 = Theme.SubText, BackgroundTransparency = 1, Size = UDim2.new(0, 80, 1, 0)})
         end
         pageFrame.Visible = true
-        animate(tabBtn, {TextColor3 = Theme.Accent, BackgroundTransparency = 0, Size = UDim2.new(0, 90, 1, 0)})
+        animate(tabBtn, {TextColor3 = Theme.Accent, BackgroundTransparency = 0.3, Size = UDim2.new(0, 90, 1, 0)})
         window.ActiveTab = tabObj
     end
 
@@ -1070,7 +1053,7 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
     createStroke(actionBtn, Theme.Stroke)
     window:RegisterElement(actionBtn)
 
-    actionBtn.MouseEnter:Connect(function() animate(actionBtn, {BackgroundColor3 = Theme.Stroke, BackgroundTransparency = 0}) end)
+    actionBtn.MouseEnter:Connect(function() animate(actionBtn, {BackgroundColor3 = Theme.Stroke, BackgroundTransparency = 0.2}) end)
     actionBtn.MouseLeave:Connect(function() animate(actionBtn, {BackgroundColor3 = Theme.SurfaceElevated, BackgroundTransparency = window:GetElementTransparency()}) end)
 
     actionBtn.MouseButton1Click:Connect(function()
