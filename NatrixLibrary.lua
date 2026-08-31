@@ -280,11 +280,12 @@ function Library:CreateWindow(config)
     local hudPing = createStatusTag(topMiddleHud, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/network.png", "PING_icon.png", "PING", 115, 115, "rbxassetid://10734934585")
 
     -- Main UI Layout Setup
-    local mainApp = Instance.new("Frame")
+    local mainApp = Instance.new("CanvasGroup")
     mainApp.Name = "MainApp"
     mainApp.Size = UDim2.new(1, 0, 1, 0)
     mainApp.BackgroundTransparency = 1
-    mainApp.Visible = not useKeySystem
+    mainApp.GroupTransparency = useKeySystem and 1 or 0
+    mainApp.Visible = true
     mainApp.ZIndex = 2
     mainApp.Parent = outerContainer
 
@@ -902,9 +903,6 @@ function Library:CreateWindow(config)
                 outTween:Play()
                 outTween.Completed:Wait()
                 keyModal:Destroy()
-                
-                mainApp.Visible = true
-                mainApp.GroupTransparency = 1
                 TweenService:Create(mainApp, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {GroupTransparency = 0}):Play()
             else
                 keyInput.Text = ""
