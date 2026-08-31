@@ -185,7 +185,7 @@ function Library:CreateWindow(config)
     screenGui.Name = "NatrixUI_" .. math.random(10000, 99999)
     screenGui.ResetOnSpawn = false
     screenGui.IgnoreGuiInset = true
-    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling -- Changed to Sibling for hierarchical layer rendering
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     
     local parentObj = (gethui and gethui()) or (syn and syn.protect_gui and CoreGui) or CoreGui
     pcall(function() screenGui.Parent = parentObj end)
@@ -293,6 +293,8 @@ function Library:CreateWindow(config)
 
     local function addPanelBackground(panel, yOffset)
         panel.ClipsDescendants = true
+        panel.BackgroundColor3 = Theme.Background
+        panel.BackgroundTransparency = 0 -- Opaque base blocks game background
         table.insert(panels, panel)
 
         local bg = Instance.new("ImageLabel")
@@ -303,7 +305,7 @@ function Library:CreateWindow(config)
         bg.Image = Config.BackgroundImageId
         bg.ImageTransparency = Config.BackgroundTransparency
         bg.ScaleType = Enum.ScaleType.Crop
-        bg.ZIndex = 1 -- Reset to 1 to remain behind panel children
+        bg.ZIndex = 1
         bg.Parent = panel
         createCorner(bg, 4)
         table.insert(bgImages, bg)
@@ -312,12 +314,12 @@ function Library:CreateWindow(config)
 
     local function updateTheme()
         local isDarkTheme = (Config.ThemeName == "Dark Theme") or (Config.BackgroundImageId == "")
-        local panelTransparency = isDarkTheme and 0 or 1 -- Set to 1 so image renders clearly without color blocking
         local imgTransparency = isDarkTheme and 1 or Config.BackgroundTransparency
         local elemTransparency = windowObj:GetElementTransparency()
 
         for _, panel in ipairs(panels) do
-            panel.BackgroundTransparency = panelTransparency
+            panel.BackgroundColor3 = Theme.Background
+            panel.BackgroundTransparency = 0 -- Keeps solid black backing behind background image
         end
 
         for _, bg in ipairs(bgImages) do
@@ -337,6 +339,7 @@ function Library:CreateWindow(config)
     topBar.Name = "TopBar"
     topBar.Size = UDim2.new(1, 0, 0, 44)
     topBar.BackgroundColor3 = Theme.Background
+    topBar.BackgroundTransparency = 0
     topBar.BorderSizePixel = 0
     topBar.ZIndex = 2
     topBar.Parent = mainApp
@@ -405,6 +408,7 @@ function Library:CreateWindow(config)
     contentArea.Size = UDim2.new(1, 0, 1, -110) 
     contentArea.Position = UDim2.new(0, 0, 0, 54) 
     contentArea.BackgroundColor3 = Theme.Background
+    contentArea.BackgroundTransparency = 0
     contentArea.BorderSizePixel = 0
     contentArea.ZIndex = 2
     contentArea.Parent = mainApp
@@ -647,6 +651,7 @@ function Library:CreateWindow(config)
     bottomBar.Size = UDim2.new(1, 0, 0, 46)
     bottomBar.Position = UDim2.new(0, 0, 1, -46)
     bottomBar.BackgroundColor3 = Theme.Background
+    bottomBar.BackgroundTransparency = 0
     bottomBar.ZIndex = 2
     bottomBar.Parent = mainApp
     createCorner(bottomBar, 4)
@@ -702,7 +707,6 @@ function Library:CreateWindow(config)
     settingsIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
     settingsIcon.BackgroundTransparency = 1
 
-    -- Fetch icon image with working Roblox Asset ID fallback
     local fetchedSettings = FetchExternalImage("https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/settings.png", "Settings_icon.png", "rbxassetid://10734950309")
     settingsIcon.Image = (fetchedSettings ~= "") and fetchedSettings or "rbxassetid://10734950309"
 
