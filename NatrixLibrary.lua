@@ -1,5 +1,6 @@
 --[[
     Library Wrapper - "Natrix Pro"
+    Theme: Black Hole (Opaque Menu Panels to Block Game Visibility)
 ]]
 
 local Library = {}
@@ -64,7 +65,7 @@ Config.BackgroundImageId = ThemeOptions[Config.ThemeName]
 
 -- Design System Constants
 local Theme = {
-    Background = Color3.fromRGB(5, 5, 5),         -- Pitch Black (#050505)
+    Background = Color3.fromRGB(5, 5, 5),         -- Pitch Black (#050505) - Fully Opaque Base
     Surface = Color3.fromRGB(12, 12, 12),         -- Deep gray for panels
     SurfaceElevated = Color3.fromRGB(18, 18, 18),
     Stroke = Color3.fromRGB(45, 45, 45),          -- Crisp contrast border
@@ -117,7 +118,6 @@ local function FetchExternalImage(url, fileName, fallbackAssetId)
     
     local success, asset = pcall(function()
         if isfile and writefile and getcustomasset then
-            -- Clean empty or 404 cached files from previous failed downloads
             if isfile(fileName) and readfile then
                 local content = readfile(fileName)
                 if #content == 0 or content:find("404") or content:find("400") then
@@ -203,9 +203,9 @@ function Library:CreateWindow(config)
     }
     setmetatable(windowObj, Library)
 
+    -- Force element containers to stay opaque so game never shows through
     function windowObj:GetElementTransparency()
-        local isDarkTheme = (Config.ThemeName == "Dark Theme") or (Config.BackgroundImageId == "")
-        return isDarkTheme and 0 or 0.25
+        return 0
     end
 
     function windowObj:RegisterElement(element, customTransparency)
@@ -216,7 +216,7 @@ function Library:CreateWindow(config)
         element.BackgroundTransparency = customTransparency or windowObj:GetElementTransparency()
     end
 
-    -- Master Container
+    -- Master Outer Screen Container (Fully transparent background layer)
     local outerContainer = Instance.new("Frame")
     outerContainer.Name = "OuterContainer"
     outerContainer.Size = UDim2.new(0, 600, 0, 480)
@@ -312,7 +312,8 @@ function Library:CreateWindow(config)
 
     local function updateTheme()
         local isDarkTheme = (Config.ThemeName == "Dark Theme") or (Config.BackgroundImageId == "")
-        local panelTransparency = isDarkTheme and 0 or 0.2
+        -- Panels are kept fully OPAQUE (0) so game world is completely hidden behind the menu box
+        local panelTransparency = 0 
         local imgTransparency = isDarkTheme and 1 or Config.BackgroundTransparency
         local elemTransparency = windowObj:GetElementTransparency()
 
@@ -332,11 +333,12 @@ function Library:CreateWindow(config)
         end
     end
 
-    -- 1. Top Navigation Bar
+    -- 1. Top Navigation Bar (Solid panel base + Black Hole theme overlay)
     local topBar = Instance.new("Frame")
     topBar.Name = "TopBar"
     topBar.Size = UDim2.new(1, 0, 0, 44)
     topBar.BackgroundColor3 = Theme.Background
+    topBar.BackgroundTransparency = 0
     topBar.BorderSizePixel = 0
     topBar.ZIndex = 2
     topBar.Parent = mainApp
@@ -399,12 +401,13 @@ function Library:CreateWindow(config)
     closeBtn.MouseLeave:Connect(function() animate(closeBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Theme.SubText, BackgroundTransparency = windowObj:GetElementTransparency()}) end)
     closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 
-    -- 2. Content Area
+    -- 2. Content Area (Solid panel base + Black Hole theme overlay)
     local contentArea = Instance.new("Frame")
     contentArea.Name = "ContentArea"
     contentArea.Size = UDim2.new(1, 0, 1, -110) 
     contentArea.Position = UDim2.new(0, 0, 0, 54) 
     contentArea.BackgroundColor3 = Theme.Background
+    contentArea.BackgroundTransparency = 0
     contentArea.BorderSizePixel = 0
     contentArea.ZIndex = 2
     contentArea.Parent = mainApp
@@ -641,12 +644,13 @@ function Library:CreateWindow(config)
         settingsMenu.Visible = false
     end)
 
-    -- 4. Bottom Status Bar
+    -- 4. Bottom Status Bar (Solid panel base + Black Hole theme overlay)
     local bottomBar = Instance.new("Frame")
     bottomBar.Name = "BottomBar"
     bottomBar.Size = UDim2.new(1, 0, 0, 46)
     bottomBar.Position = UDim2.new(0, 0, 1, -46)
     bottomBar.BackgroundColor3 = Theme.Background
+    bottomBar.BackgroundTransparency = 0
     bottomBar.ZIndex = 2
     bottomBar.Parent = mainApp
     createCorner(bottomBar, 4)
