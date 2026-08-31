@@ -185,7 +185,7 @@ function Library:CreateWindow(config)
     screenGui.Name = "NatrixUI_" .. math.random(10000, 99999)
     screenGui.ResetOnSpawn = false
     screenGui.IgnoreGuiInset = true
-    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global 
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling -- Changed to Sibling for hierarchical layer rendering
     
     local parentObj = (gethui and gethui()) or (syn and syn.protect_gui and CoreGui) or CoreGui
     pcall(function() screenGui.Parent = parentObj end)
@@ -303,7 +303,7 @@ function Library:CreateWindow(config)
         bg.Image = Config.BackgroundImageId
         bg.ImageTransparency = Config.BackgroundTransparency
         bg.ScaleType = Enum.ScaleType.Crop
-        bg.ZIndex = 1
+        bg.ZIndex = 1 -- Reset to 1 to remain behind panel children
         bg.Parent = panel
         createCorner(bg, 4)
         table.insert(bgImages, bg)
@@ -312,7 +312,7 @@ function Library:CreateWindow(config)
 
     local function updateTheme()
         local isDarkTheme = (Config.ThemeName == "Dark Theme") or (Config.BackgroundImageId == "")
-        local panelTransparency = isDarkTheme and 0 or 0.2
+        local panelTransparency = isDarkTheme and 0 or 1 -- Set to 1 so image renders clearly without color blocking
         local imgTransparency = isDarkTheme and 1 or Config.BackgroundTransparency
         local elemTransparency = windowObj:GetElementTransparency()
 
