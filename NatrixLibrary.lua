@@ -53,7 +53,7 @@ end
 LoadConfig()
 
 local ThemeOptions = {
-    ["Black Hole"] = "rbxassetid://6071575925",
+    ["Black Hole"] = "rbxassetid://134736124666311",
     ["Dark Theme"] = ""
 }
 
@@ -635,14 +635,21 @@ function Library:CreateWindow(config)
     bottomBar.Parent = mainApp
     createCorner(bottomBar, 4)
     createStroke(bottomBar, Theme.Stroke)
-    createPadding(bottomBar, 6, 6, 8, 8)
     addPanelBackground(bottomBar, 434)
+
+    local bottomContent = Instance.new("Frame")
+    bottomContent.Name = "BottomContent"
+    bottomContent.Size = UDim2.new(1, 0, 1, 0)
+    bottomContent.BackgroundTransparency = 1
+    bottomContent.ZIndex = 2
+    bottomContent.Parent = bottomBar
+    createPadding(bottomContent, 6, 6, 8, 8)
 
     local fpsWrapper = Instance.new("Frame")
     fpsWrapper.Size = UDim2.new(0, 105, 1, 0)
     fpsWrapper.BackgroundColor3 = Theme.Surface
     fpsWrapper.ZIndex = 3
-    fpsWrapper.Parent = bottomBar
+    fpsWrapper.Parent = bottomContent
     createCorner(fpsWrapper, 4)
     createStroke(fpsWrapper, Theme.Stroke)
     windowObj:RegisterElement(fpsWrapper)
@@ -652,7 +659,7 @@ function Library:CreateWindow(config)
     pingWrapper.Position = UDim2.new(0, 113, 0, 0)
     pingWrapper.BackgroundColor3 = Theme.Surface
     pingWrapper.ZIndex = 3
-    pingWrapper.Parent = bottomBar
+    pingWrapper.Parent = bottomContent
     createCorner(pingWrapper, 4)
     createStroke(pingWrapper, Theme.Stroke)
     windowObj:RegisterElement(pingWrapper)
@@ -668,7 +675,7 @@ function Library:CreateWindow(config)
     settingsBtn.BackgroundColor3 = Theme.Surface
     settingsBtn.AutoButtonColor = false
     settingsBtn.ZIndex = 3
-    settingsBtn.Parent = bottomBar
+    settingsBtn.Parent = bottomContent
     createCorner(settingsBtn, 4)
     createStroke(settingsBtn, Theme.Stroke)
     windowObj:RegisterElement(settingsBtn)
