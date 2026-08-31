@@ -115,16 +115,25 @@ local function FetchExternalImage(url, fileName)
     
     local success, asset = pcall(function()
         if isfile and writefile and getcustomasset then
+            -- Delete empty cached files from previous failed downloads
+            if isfile(fileName) and readfile and #readfile(fileName) == 0 then
+                if delfile then delfile(fileName) end
+            end
+            
             if not isfile(fileName) then
                 local imgData = game:HttpGet(url)
-                writefile(fileName, imgData)
+                if imgData and #imgData > 0 and not imgData:find("404") then
+                    writefile(fileName, imgData)
+                else
+                    return ""
+                end
             end
             return getcustomasset(fileName)
         end
         return ""
     end)
     
-    local result = success and asset or ""
+    local result = (success and asset) or ""
     if result ~= "" then
         imageCache[fileName] = result
     end
@@ -686,10 +695,13 @@ function Library:CreateWindow(config)
     settingsIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
     settingsIcon.BackgroundTransparency = 1
 
-    -- Replace the external URL or fallback asset ID below to change the icon
-    settingsIcon.Image = FetchExternalImage("https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/settings.png", "Settings_icon.png")
-    if settingsIcon.Image == "" then
-        settingsIcon.Image = "rbxassetid://7072718362" -- Fallback Roblox Asset ID
+    -- Fetch icon image with working Roblox Asset ID fallback
+    local fetchedImage = FetchExternalImage("https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/settings.png", "Settings_icon.png")
+    if fetchedImage == "" or not fetchedImage then
+        -- Use rbxassetid://10734950309 (Settings) or rbxassetid://10734975486 (Siren/Alarm)
+        settingsIcon.Image = "rbxassetid://10734950309"
+    else
+        settingsIcon.Image = fetchedImage
     end
 
     settingsIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
