@@ -108,21 +108,26 @@ local function animate(object, properties, duration)
     return tween
 end
 
--- External Image Fetcher
+-- External Image Fetcher with Roblox Asset ID Fallback
 local imageCache = {}
-local function FetchExternalImage(url, fileName)
-    if imageCache[fileName] then return imageCache[fileName] end
+local function FetchExternalImage(url, fileName, fallbackAssetId)
+    if imageCache[fileName] and imageCache[fileName] ~= "" then 
+        return imageCache[fileName] 
+    end
     
     local success, asset = pcall(function()
         if isfile and writefile and getcustomasset then
-            -- Delete empty cached files from previous failed downloads
-            if isfile(fileName) and readfile and #readfile(fileName) == 0 then
-                if delfile then delfile(fileName) end
+            -- Clean empty or 404 cached files from previous failed downloads
+            if isfile(fileName) and readfile then
+                local content = readfile(fileName)
+                if #content == 0 or content:find("404") or content:find("400") then
+                    if delfile then pcall(delfile, fileName) end
+                end
             end
             
             if not isfile(fileName) then
                 local imgData = game:HttpGet(url)
-                if imgData and #imgData > 0 and not imgData:find("404") then
+                if imgData and #imgData > 0 and not imgData:find("404") and not imgData:find("400") then
                     writefile(fileName, imgData)
                 else
                     return ""
@@ -133,7 +138,7 @@ local function FetchExternalImage(url, fileName)
         return ""
     end)
     
-    local result = (success and asset) or ""
+    local result = (success and asset and asset ~= "") and asset or (fallbackAssetId or "")
     if result ~= "" then
         imageCache[fileName] = result
     end
@@ -141,14 +146,16 @@ local function FetchExternalImage(url, fileName)
 end
 
 -- Status Tag Creator
-local function createStatusTag(parent, iconUrl, fileName, labelText, xOffset, width)
+local function createStatusTag(parent, iconUrl, fileName, labelText, xOffset, width, fallbackAssetId)
     local baseZIndex = parent.ZIndex or 1
 
     local icon = Instance.new("ImageLabel")
     icon.Size = UDim2.new(0, 16, 0, 16)
     icon.Position = UDim2.new(0, xOffset + 12, 0.5, -8)
     icon.BackgroundTransparency = 1
-    icon.Image = FetchExternalImage(iconUrl, fileName)
+    
+    local loadedImg = FetchExternalImage(iconUrl, fileName, fallbackAssetId)
+    icon.Image = (loadedImg ~= "") and loadedImg or (fallbackAssetId or "")
     icon.ZIndex = baseZIndex + 1
     icon.Parent = parent
 
@@ -260,7 +267,7 @@ function Library:CreateWindow(config)
         end
     end)
 
-    local hudFps = createStatusTag(topMiddleHud, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/speed.png", "FPS_icon.png", "FPS", 0, 115)
+    local hudFps = createStatusTag(topMiddleHud, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/speed.png", "FPS_icon.png", "FPS", 0, 115, "rbxassetid://10747373176")
     
     local hudDivider = Instance.new("Frame")
     hudDivider.Size = UDim2.new(0, 1, 0.6, 0)
@@ -270,7 +277,7 @@ function Library:CreateWindow(config)
     hudDivider.ZIndex = 51
     hudDivider.Parent = topMiddleHud
 
-    local hudPing = createStatusTag(topMiddleHud, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/network.png", "PING_icon.png", "PING", 115, 115)
+    local hudPing = createStatusTag(topMiddleHud, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/network.png", "PING_icon.png", "PING", 115, 115, "rbxassetid://10734934585")
 
     -- Main UI Layout Setup
     local mainApp = Instance.new("Frame")
@@ -673,8 +680,8 @@ function Library:CreateWindow(config)
     createStroke(pingWrapper, Theme.Stroke)
     windowObj:RegisterElement(pingWrapper)
 
-    local fpsLabel = createStatusTag(fpsWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/speed.png", "FPS_icon.png", "FPS", 0, 105)
-    local pingLabel = createStatusTag(pingWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/network.png", "PING_icon.png", "PING", 0, 115)
+    local fpsLabel = createStatusTag(fpsWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/speed.png", "FPS_icon.png", "FPS", 0, 105, "rbxassetid://10747373176")
+    local pingLabel = createStatusTag(pingWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/network.png", "PING_icon.png", "PING", 0, 115, "rbxassetid://10734934585")
 
     -- Modern White Settings Button with Image Asset
     local settingsBtn = Instance.new("ImageButton")
@@ -696,13 +703,8 @@ function Library:CreateWindow(config)
     settingsIcon.BackgroundTransparency = 1
 
     -- Fetch icon image with working Roblox Asset ID fallback
-    local fetchedImage = FetchExternalImage("https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/settings.png", "Settings_icon.png")
-    if fetchedImage == "" or not fetchedImage then
-        -- Use rbxassetid://10734950309 (Settings) or rbxassetid://10734975486 (Siren/Alarm)
-        settingsIcon.Image = "rbxassetid://10734950309"
-    else
-        settingsIcon.Image = fetchedImage
-    end
+    local fetchedSettings = FetchExternalImage("https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/settings.png", "Settings_icon.png", "rbxassetid://10734950309")
+    settingsIcon.Image = (fetchedSettings ~= "") and fetchedSettings or "rbxassetid://10734950309"
 
     settingsIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
     settingsIcon.ZIndex = 4
@@ -793,7 +795,8 @@ function Library:CreateWindow(config)
         discordBtn.Size = UDim2.new(0, 24, 0, 24)
         discordBtn.Position = UDim2.new(1, -36, 0, 12)
         discordBtn.BackgroundTransparency = 1
-        discordBtn.Image = FetchExternalImage("https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/discord.png", "NatrixDiscord.png")
+        local fetchedDiscord = FetchExternalImage("https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/discord.png", "NatrixDiscord.png", "rbxassetid://10709768652")
+        discordBtn.Image = (fetchedDiscord ~= "") and fetchedDiscord or "rbxassetid://10709768652"
         discordBtn.ZIndex = 101
         discordBtn.Parent = keyModal
         
@@ -805,7 +808,8 @@ function Library:CreateWindow(config)
         logoLabel.Size = UDim2.new(0, 100, 0, 100)
         logoLabel.Position = UDim2.new(0.5, -50, 0.1, 0)
         logoLabel.BackgroundTransparency = 1
-        logoLabel.Image = FetchExternalImage("https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/Natrixlogo.png", "NatrixLogo.png")
+        local fetchedLogo = FetchExternalImage("https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/Natrixlogo.png", "NatrixLogo.png", "rbxassetid://10734950309")
+        logoLabel.Image = (fetchedLogo ~= "") and fetchedLogo or "rbxassetid://10734950309"
         logoLabel.ScaleType = Enum.ScaleType.Fit
         logoLabel.ZIndex = 101
         logoLabel.Parent = keyModal
