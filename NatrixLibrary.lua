@@ -24,7 +24,7 @@ local Config = {
     FPSCounterEnabled = false,
     ToggleKey = "RightShift",
     BackgroundEnabled = true,
-    BackgroundUrl = "https://github.com/ntxcrim69/NatrixLibrary/blob/main/BlackHole.jpg?raw=true"
+    BackgroundUrl = ""
 }
 
 local function SaveConfig()
