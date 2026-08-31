@@ -243,23 +243,10 @@ function Library:CreateWindow(config)
     mainApp.Name = "MainApp"
     mainApp.Size = UDim2.new(1, 0, 1, 0)
     mainApp.BackgroundTransparency = 1
+    mainApp.ClipsDescendants = true
     mainApp.Visible = not useKeySystem
     mainApp.ZIndex = 2
     mainApp.Parent = outerContainer
-
-    -- Outer Window Background Asset Layer
-    local bgImage = Instance.new("ImageLabel")
-    bgImage.Name = "BackgroundImage"
-    bgImage.Size = UDim2.new(1, 0, 1, 0)
-    bgImage.Position = UDim2.new(0, 0, 0, 0)
-    bgImage.BackgroundTransparency = 1
-    bgImage.Image = Config.BackgroundImageId
-    bgImage.ImageTransparency = Config.BackgroundTransparency
-    bgImage.ScaleType = Enum.ScaleType.Crop
-    bgImage.ZIndex = 1
-    bgImage.Visible = Config.BackgroundEnabled
-    bgImage.Parent = mainApp
-    createCorner(bgImage, 8)
 
     -- 1. Top Navigation Bar (Opaque Solid Surface)
     local topBar = Instance.new("Frame")
@@ -335,10 +322,26 @@ function Library:CreateWindow(config)
     contentArea.BackgroundColor3 = Theme.Background
     contentArea.BackgroundTransparency = 0
     contentArea.BorderSizePixel = 0
+    contentArea.ClipsDescendants = true
     contentArea.ZIndex = 2
     contentArea.Parent = mainApp
     createCorner(contentArea, 8)
     createStroke(contentArea, Theme.Stroke)
+
+    -- Background is clipped to the inner content area only.
+    local bgImage = Instance.new("ImageLabel")
+    bgImage.Name = "BackgroundImage"
+    bgImage.Size = UDim2.new(1, 0, 1, 0)
+    bgImage.Position = UDim2.new(0, 0, 0, 0)
+    bgImage.BackgroundTransparency = 1
+    bgImage.Image = Config.BackgroundImageId
+    bgImage.ImageTransparency = Config.BackgroundTransparency
+    bgImage.ScaleType = Enum.ScaleType.Crop
+    bgImage.ZIndex = 1
+    bgImage.Visible = Config.BackgroundEnabled
+    bgImage.Parent = contentArea
+    createCorner(bgImage, 8)
+
     windowObj.PageHolder = contentArea
 
     -- 3. Settings Menu Overlay (Opaque Solid Surface)
