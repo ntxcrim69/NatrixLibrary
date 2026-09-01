@@ -117,7 +117,6 @@ local function FetchExternalImage(url, fileName, fallbackAssetId)
     
     local success, asset = pcall(function()
         if isfile and writefile and getcustomasset then
-            -- Clean empty or 404 cached files from previous failed downloads
             if isfile(fileName) and readfile then
                 local content = readfile(fileName)
                 if #content == 0 or content:find("404") or content:find("400") then
@@ -180,7 +179,6 @@ function Library:CreateWindow(config)
     local useKeySystem = (config.KeySystem == true)
     local keySettings = config.KeySettings or { Keys = {}, Discord = "" }
 
-    -- ScreenGui Parent Protection
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "NatrixUI_" .. math.random(10000, 99999)
     screenGui.ResetOnSpawn = false
@@ -216,7 +214,6 @@ function Library:CreateWindow(config)
         element.BackgroundTransparency = customTransparency or windowObj:GetElementTransparency()
     end
 
-    -- Master Container
     local outerContainer = Instance.new("Frame")
     outerContainer.Name = "OuterContainer"
     outerContainer.Size = UDim2.new(0, 600, 0, 480)
@@ -233,7 +230,6 @@ function Library:CreateWindow(config)
         end
     end)
 
-    -- Top Middle HUD Overlay
     local topMiddleHud = Instance.new("Frame")
     topMiddleHud.Name = "TopMiddleHud"
     topMiddleHud.Size = UDim2.new(0, 230, 0, 32)
@@ -279,7 +275,6 @@ function Library:CreateWindow(config)
 
     local hudPing = createStatusTag(topMiddleHud, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/network.png", "PING_icon.png", "PING", 115, 115, "rbxassetid://10734934585")
 
-    -- Main UI Layout Setup
     local mainApp = Instance.new("CanvasGroup")
     mainApp.Name = "MainApp"
     mainApp.Size = UDim2.new(1, 0, 1, 0)
@@ -297,7 +292,6 @@ function Library:CreateWindow(config)
         panel.ClipsDescendants = true
         table.insert(panels, panel)
 
-        -- Base background image, fully opaque and darkened via ImageColor3
         local bg = Instance.new("ImageLabel")
         bg.Name = "PanelBackgroundImage"
         bg.Size = UDim2.new(1, 0, 0, 480)
@@ -312,7 +306,6 @@ function Library:CreateWindow(config)
         createCorner(bg, 4)
         table.insert(bgImages, bg)
 
-        -- Grain overlay using EditableImage noise texture
         local grainLabel = Instance.new("ImageLabel")
         grainLabel.Name = "GrainOverlay"
         grainLabel.Size = UDim2.new(1, 0, 0, 480)
@@ -345,7 +338,6 @@ function Library:CreateWindow(config)
 
     local function updateTheme()
         local isDarkTheme = (Config.ThemeName == "Dark Theme") or (Config.BackgroundImageId == "")
-        -- Panels are invisible for image themes; bg image blocks the game world entirely
         local panelTransparency = isDarkTheme and 0 or 1
         local imgTransparency = isDarkTheme and 1 or 0
         local elemTransparency = windowObj:GetElementTransparency()
@@ -371,7 +363,6 @@ function Library:CreateWindow(config)
         end
     end
 
-    -- 1. Top Navigation Bar
     local topBar = Instance.new("Frame")
     topBar.Name = "TopBar"
     topBar.Size = UDim2.new(1, 0, 0, 44)
@@ -418,7 +409,6 @@ function Library:CreateWindow(config)
 
     windowObj.TabHolder = tabListContainer
 
-    -- Close Button
     local closeBtn = Instance.new("TextButton")
     closeBtn.Name = "CloseBtn"
     closeBtn.Size = UDim2.new(0, 26, 0, 26)
@@ -438,7 +428,6 @@ function Library:CreateWindow(config)
     closeBtn.MouseLeave:Connect(function() animate(closeBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Theme.SubText, BackgroundTransparency = windowObj:GetElementTransparency()}) end)
     closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 
-    -- 2. Content Area
     local contentArea = Instance.new("Frame")
     contentArea.Name = "ContentArea"
     contentArea.Size = UDim2.new(1, 0, 1, -110) 
@@ -453,8 +442,6 @@ function Library:CreateWindow(config)
 
     windowObj.PageHolder = contentArea
 
-    -- 3. Settings Menu Overlay
-    -- Settings menu — scrollable so user-added rows never overflow.
     local settingsMenu = Instance.new("Frame")
     settingsMenu.Name = "SettingsMenu"
     settingsMenu.Size = UDim2.new(1, 0, 1, 0)
@@ -465,7 +452,6 @@ function Library:CreateWindow(config)
     settingsMenu.Parent = contentArea
     createCorner(settingsMenu, 4)
 
-    -- Scrollable container for all settings rows.
     local settingsScroll = Instance.new("ScrollingFrame")
     settingsScroll.Name = "SettingsScroll"
     settingsScroll.Size = UDim2.new(1, 0, 1, -50)
@@ -486,7 +472,6 @@ function Library:CreateWindow(config)
         settingsScroll.CanvasSize = UDim2.new(0, 0, 0, settingsLayout.AbsoluteContentSize.Y + 24)
     end)
 
-    -- Helper: create a base row frame parented into the scroll container.
     local function makeSettingsRow()
         local row = Instance.new("Frame")
         row.Size = UDim2.new(1, 0, 0, 42)
@@ -500,7 +485,6 @@ function Library:CreateWindow(config)
         return row
     end
 
-    -- Helper: add a left-aligned label to a row.
     local function makeRowLabel(row, text, widthScale)
         local lbl = Instance.new("TextLabel")
         lbl.Size = UDim2.new(widthScale or 0.55, 0, 1, 0)
@@ -515,7 +499,6 @@ function Library:CreateWindow(config)
         return lbl
     end
 
-    -- Settings Item 1: FPS Counter toggle.
     do
         local row = makeSettingsRow()
         makeRowLabel(row, "FPS & Ping Counter")
@@ -555,7 +538,6 @@ function Library:CreateWindow(config)
         end)
     end
 
-    -- Settings Item 2: Theme dropdown.
     do
         local row = makeSettingsRow()
         makeRowLabel(row, "Theme", 0.38)
@@ -617,7 +599,6 @@ function Library:CreateWindow(config)
         end)
     end
 
-    -- Settings Item 3: Menu toggle key.
     do
         local row = makeSettingsRow()
         makeRowLabel(row, "Menu Toggle Key")
@@ -655,7 +636,6 @@ function Library:CreateWindow(config)
         end)
     end
 
-    -- Close Settings Button — always pinned to the bottom of settingsMenu.
     local closeSettingsBtn = Instance.new("TextButton")
     closeSettingsBtn.Size = UDim2.new(0, 100, 0, 30)
     closeSettingsBtn.Position = UDim2.new(0.5, -50, 1, -40)
@@ -674,7 +654,6 @@ function Library:CreateWindow(config)
         settingsMenu.Visible = false
     end)
 
-    -- Exposed API: add a toggle row to the settings menu.
     function windowObj:AddSettingToggle(label, defaultState, callback)
         callback = callback or function() end
         local state = defaultState or false
@@ -715,7 +694,6 @@ function Library:CreateWindow(config)
         end)
     end
 
-    -- Exposed API: add a button row to the settings menu.
     function windowObj:AddSettingButton(label, buttonText, callback)
         callback = callback or function() end
         buttonText = buttonText or "Run"
@@ -741,7 +719,6 @@ function Library:CreateWindow(config)
         btn.MouseButton1Click:Connect(function() task.spawn(callback) end)
     end
 
-    -- Exposed API: add a dropdown row to the settings menu.
     function windowObj:AddSettingDropdown(label, options, defaultOption, callback)
         callback = callback or function() end
         options = options or {}
@@ -790,7 +767,6 @@ function Library:CreateWindow(config)
 
         local listPanel = Instance.new("Frame")
         listPanel.Size = UDim2.new(0, pillWidth, 0, listH)
-        -- Reparent the settings menu dropdown so it avoids scrolling frame clipping
         listPanel.Parent = settingsMenu
         listPanel.BackgroundColor3 = Theme.SurfaceElevated
         listPanel.BackgroundTransparency = 0
@@ -825,20 +801,16 @@ function Library:CreateWindow(config)
 
         local function openList()
             isOpen = true
-            
-            -- Calculate precise absolute positioning inside the settings menu context
             local pAbs = pill.AbsolutePosition
             local sAbs = settingsMenu.AbsolutePosition
             listPanel.Position = UDim2.new(
                 0, pAbs.X - sAbs.X, 
                 0, (pAbs.Y - sAbs.Y) + pill.AbsoluteSize.Y + 6
             )
-            
             listPanel.Visible = true
             animate(chev, {TextColor3 = Theme.Accent}, 0.15)
         end
 
-        -- Make sure we close if the user begins scrolling while open
         settingsScroll:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
             if isOpen then closeList() end
         end)
@@ -887,7 +859,6 @@ function Library:CreateWindow(config)
         return { SetSelected = function(_, v) setSelected(v) end, GetSelected = function() return selected end }
     end
 
-    -- 4. Bottom Status Bar
     local bottomBar = Instance.new("Frame")
     bottomBar.Name = "BottomBar"
     bottomBar.Size = UDim2.new(1, 0, 0, 46)
@@ -929,7 +900,6 @@ function Library:CreateWindow(config)
     local fpsLabel = createStatusTag(fpsWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/speed.png", "FPS_icon.png", "FPS", 0, 105, "rbxassetid://10747373176")
     local pingLabel = createStatusTag(pingWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/network.png", "PING_icon.png", "PING", 0, 115, "rbxassetid://10734934585")
 
-    -- Modern White Settings Button with Image Asset
     local settingsBtn = Instance.new("ImageButton")
     settingsBtn.Name = "SettingsBtn"
     settingsBtn.Size = UDim2.new(0, 32, 0, 32)
@@ -948,10 +918,8 @@ function Library:CreateWindow(config)
     settingsIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
     settingsIcon.BackgroundTransparency = 1
 
-    -- Fetch icon image with working Roblox Asset ID fallback
     local fetchedSettings = FetchExternalImage("https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/settings.png", "Settings_icon.png", "rbxassetid://10734950309")
     settingsIcon.Image = (fetchedSettings ~= "") and fetchedSettings or "rbxassetid://10734950309"
-
     settingsIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
     settingsIcon.ZIndex = 4
     settingsIcon.Parent = settingsBtn
@@ -970,7 +938,6 @@ function Library:CreateWindow(config)
 
     updateTheme()
 
-    -- Live Stats Calculation
     local frames = 0
     local lastUpdate = os.clock()
     RunService.RenderStepped:Connect(function()
@@ -1006,7 +973,6 @@ function Library:CreateWindow(config)
         end
     end)
 
-    -- 5. Key System Overlay
     if useKeySystem then
         local keyModal = Instance.new("CanvasGroup")
         keyModal.Name = "KeyModal"
@@ -1127,7 +1093,6 @@ function Library:CreateWindow(config)
     return windowObj
 end
 
--- Dynamic Tab Creation
 function Library:CreateTab(tabName)
     local window = self
 
@@ -1197,7 +1162,6 @@ function Library:CreateTab(tabName)
     return tabObj
 end
 
--- Component Method: CreateToggle
 function Tab:CreateToggle(label, defaultState, callback)
     callback = callback or function() end
     local state = defaultState or false
@@ -1264,7 +1228,6 @@ function Tab:CreateToggle(label, defaultState, callback)
     end)
 end
 
--- Component Method: CreateButton
 function Tab:CreateButton(label, buttonText, defaultKey, callback)
     if type(defaultKey) == "function" then
         callback = defaultKey
@@ -1366,7 +1329,6 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
     end
 end
 
--- Component Method: CreateSlider
 function Tab:CreateSlider(label, min, max, defaultVal, callback)
     callback = callback or function() end
     min = min or 0
@@ -1458,197 +1420,170 @@ function Tab:CreateSlider(label, min, max, defaultVal, callback)
     end)
 end
 
--- Component Method: CreateDropdown
 function Tab:CreateDropdown(label, options, defaultOption, callback)
-	callback = callback or function() end
-	options = options or {}
-	local selected = defaultOption or options[1] or ""
-	local isOpen = false
-	local window = self.Window
+    callback = callback or function() end
+    options = options or {}
+    local selected = defaultOption or options[1] or ""
+    local isOpen = false
+    local window = self.Window
 
-	-- Outer row frame — same height as other components.
-	local dropFrame = Instance.new("Frame")
-	dropFrame.Size = UDim2.new(1, 0, 0, 42)
-	dropFrame.BackgroundColor3 = Theme.Surface
-	dropFrame.ZIndex = 5
-	dropFrame.ClipsDescendants = false
-	dropFrame.Parent = self.Container
-	createCorner(dropFrame, 4)
-	createStroke(dropFrame, Theme.Stroke)
-	createPadding(dropFrame, 0, 0, 4, 12)
-	window:RegisterElement(dropFrame)
+    local dropFrame = Instance.new("Frame")
+    dropFrame.Size = UDim2.new(1, 0, 0, 42)
+    dropFrame.BackgroundColor3 = Theme.Surface
+    dropFrame.ZIndex = 5
+    dropFrame.ClipsDescendants = false
+    dropFrame.Parent = self.Container
+    createCorner(dropFrame, 4)
+    createStroke(dropFrame, Theme.Stroke)
+    createPadding(dropFrame, 0, 0, 4, 12)
+    window:RegisterElement(dropFrame)
 
-	local textLabel = Instance.new("TextLabel")
-	textLabel.Size = UDim2.new(0.45, 0, 1, 0)
-	textLabel.BackgroundTransparency = 1
-	textLabel.Text = label
-	textLabel.TextColor3 = Theme.Text
-	textLabel.Font = Enum.Font.GothamMedium
-	textLabel.TextSize = 13
-	textLabel.TextXAlignment = Enum.TextXAlignment.Left
-	textLabel.ZIndex = 6
-	textLabel.Parent = dropFrame
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(0.45, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = label
+    textLabel.TextColor3 = Theme.Text
+    textLabel.Font = Enum.Font.GothamMedium
+    textLabel.TextSize = 13
+    textLabel.TextXAlignment = Enum.TextXAlignment.Left
+    textLabel.ZIndex = 6
+    textLabel.Parent = dropFrame
 
-	-- Pill button showing the current selection with a chevron.
-	local pillWidth = 150
-	local pill = Instance.new("TextButton")
-	pill.Size = UDim2.new(0, pillWidth, 0, 26)
-	pill.Position = UDim2.new(1, -pillWidth, 0.5, -13)
-	pill.BackgroundColor3 = Theme.Background
-	pill.Text = ""
-	pill.ZIndex = 6
-	pill.Parent = dropFrame
-	createCorner(pill, 4)
-	createStroke(pill, Theme.Stroke)
-	window:RegisterElement(pill)
+    local pillWidth = 150
+    local pill = Instance.new("TextButton")
+    pill.Size = UDim2.new(0, pillWidth, 0, 26)
+    pill.Position = UDim2.new(1, -pillWidth, 0.5, -13)
+    pill.BackgroundColor3 = Theme.Background
+    pill.Text = ""
+    pill.ZIndex = 6
+    pill.Parent = dropFrame
+    createCorner(pill, 4)
+    createStroke(pill, Theme.Stroke)
+    window:RegisterElement(pill)
 
-	local pillLabel = Instance.new("TextLabel")
-	pillLabel.Size = UDim2.new(1, -28, 1, 0)
-	pillLabel.Position = UDim2.new(0, 10, 0, 0)
-	pillLabel.BackgroundTransparency = 1
-	pillLabel.Text = selected
-	pillLabel.TextColor3 = Theme.SubText
-	pillLabel.Font = Enum.Font.Gotham
-	pillLabel.TextSize = 11
-	pillLabel.TextXAlignment = Enum.TextXAlignment.Left
-	pillLabel.ZIndex = 7
-	pillLabel.Parent = pill
+    local pillLabel = Instance.new("TextLabel")
+    pillLabel.Size = UDim2.new(1, -28, 1, 0)
+    pillLabel.Position = UDim2.new(0, 10, 0, 0)
+    pillLabel.BackgroundTransparency = 1
+    pillLabel.Text = selected
+    pillLabel.TextColor3 = Theme.SubText
+    pillLabel.Font = Enum.Font.Gotham
+    pillLabel.TextSize = 11
+    pillLabel.TextXAlignment = Enum.TextXAlignment.Left
+    pillLabel.ZIndex = 7
+    pillLabel.Parent = pill
 
-	-- Chevron indicator that brightens on open.
-	local chevron = Instance.new("TextLabel")
-	chevron.Size = UDim2.new(0, 18, 0, 18)
-	chevron.Position = UDim2.new(1, -22, 0.5, -9)
-	chevron.BackgroundTransparency = 1
-	chevron.Text = "v"
-	chevron.TextColor3 = Theme.SubText
-	chevron.Font = Enum.Font.GothamBold
-	chevron.TextSize = 9
-	chevron.ZIndex = 7
-	chevron.Parent = pill
+    local chevron = Instance.new("TextLabel")
+    chevron.Size = UDim2.new(0, 18, 0, 18)
+    chevron.Position = UDim2.new(1, -22, 0.5, -9)
+    chevron.BackgroundTransparency = 1
+    chevron.Text = "v"
+    chevron.TextColor3 = Theme.SubText
+    chevron.Font = Enum.Font.GothamBold
+    chevron.TextSize = 9
+    chevron.ZIndex = 7
+    chevron.Parent = pill
 
-	-- List panel floats above siblings via high ZIndex.
-	local optionCount = math.max(#options, 1)
-	local itemH = 28
-	local listPad = 6
-	local listH = optionCount * itemH + listPad * 2
+    local optionCount = math.max(#options, 1)
+    local itemH = 28
+    local listPad = 6
+    local listH = optionCount * itemH + listPad * 2
 
-	local listPanel = Instance.new("Frame")
-	listPanel.Size = UDim2.new(0, pillWidth, 0, listH)
-    -- Reparent the listPanel up to the page frame to avoid scrolling frame clipping
-	listPanel.Parent = self.Page
-	listPanel.BackgroundColor3 = Theme.SurfaceElevated
-	listPanel.BackgroundTransparency = 0
-	listPanel.Visible = false
-	listPanel.ZIndex = 50
-	createCorner(listPanel, 6)
-	createStroke(listPanel, Theme.Stroke)
-	createPadding(listPanel, listPad, listPad, listPad, listPad)
+    local listPanel = Instance.new("Frame")
+    listPanel.Size = UDim2.new(0, pillWidth, 0, listH)
+    listPanel.Parent = self.Page
+    listPanel.BackgroundColor3 = Theme.SurfaceElevated
+    listPanel.BackgroundTransparency = 0
+    listPanel.Visible = false
+    listPanel.ZIndex = 50
+    createCorner(listPanel, 6)
+    createStroke(listPanel, Theme.Stroke)
+    createPadding(listPanel, listPad, listPad, listPad, listPad)
 
-	local listLayout = Instance.new("UIListLayout")
-	listLayout.Padding = UDim.new(0, 2)
-	listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-	listLayout.Parent = listPanel
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 2)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    listLayout.Parent = listPanel
 
-	local optionButtons = {}
+    local optionButtons = {}
 
-	local function setSelected(value)
-		selected = value
-		pillLabel.Text = value
-		for _, btn in ipairs(optionButtons) do
-			local active = btn.Text == value
-			btn.TextColor3 = active and Theme.Accent or Theme.Text
-			animate(btn, {
-				BackgroundColor3 = active and Theme.Surface or Theme.SurfaceElevated,
-				BackgroundTransparency = active and 0 or 1,
-			}, 0.15)
-		end
-	end
+    local function setSelected(value)
+        selected = value
+        pillLabel.Text = value
+        for _, btn in ipairs(optionButtons) do
+            local active = btn.Text == value
+            btn.TextColor3 = active and Theme.Accent or Theme.Text
+            animate(btn, {
+                BackgroundColor3 = active and Theme.Surface or Theme.SurfaceElevated,
+                BackgroundTransparency = active and 0 or 1,
+            }, 0.15)
+        end
+    end
 
-	local function closeList()
-		isOpen = false
-		listPanel.Visible = false
-		animate(chevron, {TextColor3 = Theme.SubText}, 0.15)
-	end
+    local function closeList()
+        isOpen = false
+        listPanel.Visible = false
+        animate(chevron, {TextColor3 = Theme.SubText}, 0.15)
+    end
 
-	local function openList()
-		isOpen = true
-        
-        -- Calculate absolute positioning relative to self.Page
+    local function openList()
+        isOpen = true
         local pAbs = pill.AbsolutePosition
         local pageAbs = self.Page.AbsolutePosition
         listPanel.Position = UDim2.new(
-            0, pAbs.X - pageAbs.X, 
+            0, pAbs.X - pageAbs.X,
             0, (pAbs.Y - pageAbs.Y) + pill.AbsoluteSize.Y + 6
         )
-        
-		listPanel.Visible = true
-		animate(chevron, {TextColor3 = Theme.Accent}, 0.15)
-	end
+        listPanel.Visible = true
+        animate(chevron, {TextColor3 = Theme.Accent}, 0.15)
+    end
 
-    -- Close the dropdown automatically if the user begins scrolling
     self.Container:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
         if isOpen then closeList() end
     end)
 
-	for _, optName in ipairs(options) do
-		local optBtn = Instance.new("TextButton")
-		optBtn.Size = UDim2.new(1, 0, 0, itemH)
-		optBtn.BackgroundColor3 = (optName == selected) and Theme.Surface or Theme.SurfaceElevated
-		optBtn.BackgroundTransparency = (optName == selected) and 0 or 1
-		optBtn.Text = optName
-		optBtn.TextColor3 = (optName == selected) and Theme.Accent or Theme.Text
-		optBtn.Font = Enum.Font.GothamMedium
-		optBtn.TextSize = 11
-		optBtn.ZIndex = 51
-		optBtn.Parent = listPanel
-		createCorner(optBtn, 4)
-		table.insert(optionButtons, optBtn)
+    for _, optName in ipairs(options) do
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, 0, 0, itemH)
+        btn.BackgroundColor3 = (optName == selected) and Theme.Surface or Theme.SurfaceElevated
+        btn.BackgroundTransparency = (optName == selected) and 0 or 1
+        btn.Text = optName
+        btn.TextColor3 = (optName == selected) and Theme.Accent or Theme.Text
+        btn.Font = Enum.Font.GothamMedium
+        btn.TextSize = 11
+        btn.ZIndex = 51
+        btn.Parent = listPanel
+        createCorner(btn, 4)
+        table.insert(optionButtons, btn)
 
-		optBtn.MouseEnter:Connect(function()
-			if optBtn.Text ~= selected then
-				animate(optBtn, {BackgroundTransparency = 0, BackgroundColor3 = Theme.Stroke}, 0.1)
-			end
-		end)
-		optBtn.MouseLeave:Connect(function()
-			if optBtn.Text ~= selected then
-				animate(optBtn, {BackgroundTransparency = 1, BackgroundColor3 = Theme.SurfaceElevated}, 0.1)
-			end
-		end)
-		optBtn.MouseButton1Click:Connect(function()
-			setSelected(optName)
-			closeList()
-			task.spawn(callback, optName)
-		end)
-	end
+        btn.MouseEnter:Connect(function()
+            if btn.Text ~= selected then animate(btn, {BackgroundTransparency = 0, BackgroundColor3 = Theme.Stroke}, 0.1) end
+        end)
+        btn.MouseLeave:Connect(function()
+            if btn.Text ~= selected then animate(btn, {BackgroundTransparency = 1, BackgroundColor3 = Theme.SurfaceElevated}, 0.1) end
+        end)
+        btn.MouseButton1Click:Connect(function()
+            setSelected(optName)
+            closeList()
+            task.spawn(callback, optName)
+        end)
+    end
 
-	pill.MouseEnter:Connect(function()
-		animate(pill, {BackgroundColor3 = Theme.SurfaceElevated, BackgroundTransparency = 0}, 0.15)
-	end)
-	pill.MouseLeave:Connect(function()
-		animate(pill, {BackgroundColor3 = Theme.Background, BackgroundTransparency = window:GetElementTransparency()}, 0.15)
-	end)
-	pill.MouseButton1Click:Connect(function()
-		if isOpen then closeList() else openList() end
-	end)
+    pill.MouseEnter:Connect(function() animate(pill, {BackgroundColor3 = Theme.SurfaceElevated, BackgroundTransparency = 0}, 0.15) end)
+    pill.MouseLeave:Connect(function() animate(pill, {BackgroundColor3 = Theme.Background, BackgroundTransparency = windowObj:GetElementTransparency()}, 0.15) end)
+    pill.MouseButton1Click:Connect(function() if isOpen then closeList() else openList() end end)
 
-	-- Close when clicking anywhere outside.
-	UserInputService.InputBegan:Connect(function(input)
-		if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
-		if not isOpen then return end
-		local mPos  = UserInputService:GetMouseLocation()
-		local pAbs  = pill.AbsolutePosition
-		local pSz   = pill.AbsoluteSize
-		local lAbs  = listPanel.AbsolutePosition
-		local lSz   = listPanel.AbsoluteSize
-		local inPill = mPos.X >= pAbs.X and mPos.X <= pAbs.X + pSz.X and mPos.Y >= pAbs.Y and mPos.Y <= pAbs.Y + pSz.Y
-		local inList = mPos.X >= lAbs.X and mPos.X <= lAbs.X + lSz.X and mPos.Y >= lAbs.Y and mPos.Y <= lAbs.Y + lSz.Y
-		if not inPill and not inList then closeList() end
-	end)
+    UserInputService.InputBegan:Connect(function(input)
+        if input.UserInputType ~= Enum.UserInputType.MouseButton1 or not isOpen then return end
+        local mPos = UserInputService:GetMouseLocation()
+        local pA, pS = pill.AbsolutePosition, pill.AbsoluteSize
+        local lA, lS = listPanel.AbsolutePosition, listPanel.AbsoluteSize
+        local inPill = mPos.X >= pA.X and mPos.X <= pA.X + pS.X and mPos.Y >= pA.Y and mPos.Y <= pA.Y + pS.Y
+        local inList = mPos.X >= lA.X and mPos.X <= lA.X + lS.X and mPos.Y >= lA.Y and mPos.Y <= lA.Y + lS.Y
+        if not inPill and not inList then closeList() end
+    end)
 
-	return {
-		SetSelected = function(_, value) setSelected(value) end,
-		GetSelected = function() return selected end,
-	}
+    return { SetSelected = function(_, v) setSelected(v) end, GetSelected = function() return selected end }
 end
 
 return Library
