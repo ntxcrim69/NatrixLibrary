@@ -1226,4 +1226,156 @@ function Tab:CreateSlider(label, min, max, defaultVal, callback)
     end)
 end
 
+function Tab:CreateDropdown(label, options, defaultOption, callback)
+    callback = callback or function() end
+    options = options or {}
+    local selected = defaultOption or (options[1] or "Select...")
+    local isOpen = false
+    local window = self.Window
+
+    -- Outer row frame (same 42px height as Toggle/Button)
+    local dropFrame = Instance.new("Frame")
+    dropFrame.Name = label .. "_Dropdown"
+    dropFrame.Size = UDim2.new(1, 0, 0, 42)
+    dropFrame.BackgroundColor3 = Theme.Surface
+    dropFrame.ClipsDescendants = false   -- allow list to overflow
+    dropFrame.ZIndex = 5
+    dropFrame.Parent = self.Container
+    createCorner(dropFrame, 4)
+    createStroke(dropFrame, Theme.Stroke)
+    createPadding(dropFrame, 0, 0, 4, 12)
+    window:RegisterElement(dropFrame)
+
+    -- Label on the left
+    local textLabel = Instance.new("TextLabel")
+    textLabel.Size = UDim2.new(0.4, 0, 1, 0)
+    textLabel.BackgroundTransparency = 1
+    textLabel.Text = label
+    textLabel.TextColor3 = Theme.Text
+    textLabel.Font = Enum.Font.GothamMedium
+    textLabel.TextSize = 13
+    textLabel.TextXAlignment = Enum.TextXAlignment.Left
+    textLabel.ZIndex = 6
+    textLabel.Parent = dropFrame
+
+    -- Selected-value button on the right
+    local selectedBtn = Instance.new("TextButton")
+    selectedBtn.Size = UDim2.new(0, 150, 0, 26)
+    selectedBtn.Position = UDim2.new(1, -154, 0.5, -13)
+    selectedBtn.BackgroundColor3 = Theme.Background
+    selectedBtn.Text = selected .. "  ▾"
+    selectedBtn.TextColor3 = Theme.SubText
+    selectedBtn.Font = Enum.Font.Gotham
+    selectedBtn.TextSize = 11
+    selectedBtn.ZIndex = 6
+    selectedBtn.Parent = dropFrame
+    createCorner(selectedBtn, 4)
+    createStroke(selectedBtn, Theme.Stroke)
+    window:RegisterElement(selectedBtn)
+
+    -- Drop-down list panel (hidden by default)
+    local listFrame = Instance.new("Frame")
+    listFrame.Name = "DropdownList"
+    listFrame.Size = UDim2.new(0, 150, 0, 0)   -- height set dynamically
+    listFrame.Position = UDim2.new(1, -154, 1, 4)
+    listFrame.BackgroundColor3 = Theme.SurfaceElevated
+    listFrame.BackgroundTransparency = 0
+    listFrame.ClipsDescendants = true
+    listFrame.Visible = false
+    listFrame.ZIndex = 50
+    listFrame.Parent = dropFrame
+    createCorner(listFrame, 4)
+    createStroke(listFrame, Theme.Stroke)
+    createPadding(listFrame, 4, 4, 4, 4)
+
+    local listLayout = Instance.new("UIListLayout")
+    listLayout.Padding = UDim.new(0, 2)
+    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    listLayout.Parent = listFrame
+
+    -- One row per option
+    local ITEM_H = 26
+    local PAD     = 8  -- top+bottom padding total
+    local fullHeight = #options * ITEM_H + (#options - 1) * 2 + PAD
+
+    for _, optionName in ipairs(options) do
+        local optBtn = Instance.new("TextButton")
+        optBtn.Size = UDim2.new(1, 0, 0, ITEM_H)
+        optBtn.BackgroundColor3 = Theme.SurfaceElevated
+        optBtn.BackgroundTransparency = 0
+        optBtn.Text = optionName
+        optBtn.TextColor3 = optionName == selected and Theme.Accent or Theme.Text
+        optBtn.Font = Enum.Font.Gotham
+        optBtn.TextSize = 11
+        optBtn.ZIndex = 51
+        optBtn.Parent = listFrame
+        createCorner(optBtn, 4)
+
+        optBtn.MouseEnter:Connect(function()
+            animate(optBtn, {BackgroundColor3 = Theme.Stroke, BackgroundTransparency = 0})
+        end)
+        optBtn.MouseLeave:Connect(function()
+            animate(optBtn, {BackgroundColor3 = Theme.SurfaceElevated, BackgroundTransparency = 0})
+        end)
+
+        optBtn.MouseButton1Click:Connect(function()
+            selected = optionName
+            selectedBtn.Text = selected .. "  ▾"
+
+            -- Update text colours across all option buttons
+            for _, child in ipairs(listFrame:GetChildren()) do
+                if child:IsA("TextButton") then
+                    child.TextColor3 = (child.Text == optionName) and Theme.Accent or Theme.Text
+                end
+            end
+
+            -- Close list
+            animate(listFrame, {Size = UDim2.new(0, 150, 0, 0)}, 0.2)
+            task.delay(0.2, function() listFrame.Visible = false end)
+            isOpen = false
+            selectedBtn.Text = selected .. "  ▾"
+
+            task.spawn(callback, selected)
+        end)
+    end
+
+    -- Toggle open/close
+    selectedBtn.MouseButton1Click:Connect(function()
+        isOpen = not isOpen
+        if isOpen then
+            listFrame.Size = UDim2.new(0, 150, 0, 0)
+            listFrame.Visible = true
+            animate(listFrame, {Size = UDim2.new(0, 150, 0, fullHeight)}, 0.2)
+        else
+            animate(listFrame, {Size = UDim2.new(0, 150, 0, 0)}, 0.2)
+            task.delay(0.2, function() listFrame.Visible = false end)
+        end
+    end)
+
+    -- Public API so callers can read / set the value programmatically
+    local dropObj = {}
+
+    function dropObj:GetValue()
+        return selected
+    end
+
+    function dropObj:SetValue(newOption)
+        for _, optionName in ipairs(options) do
+            if optionName == newOption then
+                selected = newOption
+                selectedBtn.Text = selected .. "  ▾"
+                for _, child in ipairs(listFrame:GetChildren()) do
+                    if child:IsA("TextButton") then
+                        child.TextColor3 = (child.Text == newOption) and Theme.Accent or Theme.Text
+                    end
+                end
+                task.spawn(callback, selected)
+                return
+            end
+        end
+    end
+
+    return dropObj
+end
+
 return Library
