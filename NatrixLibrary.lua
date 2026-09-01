@@ -117,7 +117,6 @@ local function FetchExternalImage(url, fileName, fallbackAssetId)
     
     local success, asset = pcall(function()
         if isfile and writefile and getcustomasset then
-            -- Clean empty or 404 cached files from previous failed downloads
             if isfile(fileName) and readfile then
                 local content = readfile(fileName)
                 if #content == 0 or content:find("404") or content:find("400") then
@@ -180,7 +179,6 @@ function Library:CreateWindow(config)
     local useKeySystem = (config.KeySystem == true)
     local keySettings = config.KeySettings or { Keys = {}, Discord = "" }
 
-    -- ScreenGui Parent Protection
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "NatrixUI_" .. math.random(10000, 99999)
     screenGui.ResetOnSpawn = false
@@ -216,7 +214,6 @@ function Library:CreateWindow(config)
         element.BackgroundTransparency = customTransparency or windowObj:GetElementTransparency()
     end
 
-    -- Master Container
     local outerContainer = Instance.new("Frame")
     outerContainer.Name = "OuterContainer"
     outerContainer.Size = UDim2.new(0, 600, 0, 480)
@@ -233,7 +230,6 @@ function Library:CreateWindow(config)
         end
     end)
 
-    -- Top Middle HUD Overlay
     local topMiddleHud = Instance.new("Frame")
     topMiddleHud.Name = "TopMiddleHud"
     topMiddleHud.Size = UDim2.new(0, 230, 0, 32)
@@ -279,7 +275,6 @@ function Library:CreateWindow(config)
 
     local hudPing = createStatusTag(topMiddleHud, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/network.png", "PING_icon.png", "PING", 115, 115, "rbxassetid://10734934585")
 
-    -- Main UI Layout Setup
     local mainApp = Instance.new("CanvasGroup")
     mainApp.Name = "MainApp"
     mainApp.Size = UDim2.new(1, 0, 1, 0)
@@ -297,7 +292,6 @@ function Library:CreateWindow(config)
         panel.ClipsDescendants = true
         table.insert(panels, panel)
 
-        -- Base background image, fully opaque and darkened via ImageColor3
         local bg = Instance.new("ImageLabel")
         bg.Name = "PanelBackgroundImage"
         bg.Size = UDim2.new(1, 0, 0, 480)
@@ -312,7 +306,6 @@ function Library:CreateWindow(config)
         createCorner(bg, 4)
         table.insert(bgImages, bg)
 
-        -- Grain overlay using EditableImage noise texture
         local grainLabel = Instance.new("ImageLabel")
         grainLabel.Name = "GrainOverlay"
         grainLabel.Size = UDim2.new(1, 0, 0, 480)
@@ -345,7 +338,6 @@ function Library:CreateWindow(config)
 
     local function updateTheme()
         local isDarkTheme = (Config.ThemeName == "Dark Theme") or (Config.BackgroundImageId == "")
-        -- Panels are invisible for image themes; bg image blocks the game world entirely
         local panelTransparency = isDarkTheme and 0 or 1
         local imgTransparency = isDarkTheme and 1 or 0
         local elemTransparency = windowObj:GetElementTransparency()
@@ -371,7 +363,6 @@ function Library:CreateWindow(config)
         end
     end
 
-    -- 1. Top Navigation Bar
     local topBar = Instance.new("Frame")
     topBar.Name = "TopBar"
     topBar.Size = UDim2.new(1, 0, 0, 44)
@@ -418,7 +409,6 @@ function Library:CreateWindow(config)
 
     windowObj.TabHolder = tabListContainer
 
-    -- Close Button
     local closeBtn = Instance.new("TextButton")
     closeBtn.Name = "CloseBtn"
     closeBtn.Size = UDim2.new(0, 26, 0, 26)
@@ -438,7 +428,6 @@ function Library:CreateWindow(config)
     closeBtn.MouseLeave:Connect(function() animate(closeBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Theme.SubText, BackgroundTransparency = windowObj:GetElementTransparency()}) end)
     closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 
-    -- 2. Content Area
     local contentArea = Instance.new("Frame")
     contentArea.Name = "ContentArea"
     contentArea.Size = UDim2.new(1, 0, 1, -110) 
@@ -453,7 +442,6 @@ function Library:CreateWindow(config)
 
     windowObj.PageHolder = contentArea
 
-    -- 3. Settings Menu Overlay
     local settingsMenu = Instance.new("Frame")
     settingsMenu.Name = "SettingsMenu"
     settingsMenu.Size = UDim2.new(1, 0, 1, 0)
@@ -464,7 +452,6 @@ function Library:CreateWindow(config)
     settingsMenu.Parent = contentArea
     createCorner(settingsMenu, 4)
 
-    -- Settings Item 1: FPS Counter
     local settingsToggleFrame = Instance.new("Frame")
     settingsToggleFrame.Size = UDim2.new(1, -24, 0, 42)
     settingsToggleFrame.Position = UDim2.new(0, 12, 0, 16)
@@ -527,7 +514,6 @@ function Library:CreateWindow(config)
         SaveConfig()
     end)
 
-    -- Settings Item 2: Theme Selector
     local themeFrame = Instance.new("Frame")
     themeFrame.Size = UDim2.new(1, -24, 0, 42)
     themeFrame.Position = UDim2.new(0, 12, 0, 68)
@@ -606,7 +592,6 @@ function Library:CreateWindow(config)
         themeList.Visible = not themeList.Visible
     end)
 
-    -- Settings Item 3: Menu Toggle Key
     local settingsKeybindFrame = Instance.new("Frame")
     settingsKeybindFrame.Size = UDim2.new(1, -24, 0, 42)
     settingsKeybindFrame.Position = UDim2.new(0, 12, 0, 120)
@@ -661,7 +646,6 @@ function Library:CreateWindow(config)
         end)
     end)
 
-    -- Close Settings Button
     local closeSettingsBtn = Instance.new("TextButton")
     closeSettingsBtn.Size = UDim2.new(0, 100, 0, 30)
     closeSettingsBtn.Position = UDim2.new(0.5, -50, 1, -45)
@@ -680,7 +664,6 @@ function Library:CreateWindow(config)
         settingsMenu.Visible = false
     end)
 
-    -- 4. Bottom Status Bar
     local bottomBar = Instance.new("Frame")
     bottomBar.Name = "BottomBar"
     bottomBar.Size = UDim2.new(1, 0, 0, 46)
@@ -722,7 +705,6 @@ function Library:CreateWindow(config)
     local fpsLabel = createStatusTag(fpsWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/speed.png", "FPS_icon.png", "FPS", 0, 105, "rbxassetid://10747373176")
     local pingLabel = createStatusTag(pingWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/network.png", "PING_icon.png", "PING", 0, 115, "rbxassetid://10734934585")
 
-    -- Modern White Settings Button with Image Asset
     local settingsBtn = Instance.new("ImageButton")
     settingsBtn.Name = "SettingsBtn"
     settingsBtn.Size = UDim2.new(0, 32, 0, 32)
@@ -741,7 +723,6 @@ function Library:CreateWindow(config)
     settingsIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
     settingsIcon.BackgroundTransparency = 1
 
-    -- Fetch icon image with working Roblox Asset ID fallback
     local fetchedSettings = FetchExternalImage("https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/settings.png", "Settings_icon.png", "rbxassetid://10734950309")
     settingsIcon.Image = (fetchedSettings ~= "") and fetchedSettings or "rbxassetid://10734950309"
 
@@ -763,7 +744,6 @@ function Library:CreateWindow(config)
 
     updateTheme()
 
-    -- Live Stats Calculation
     local frames = 0
     local lastUpdate = os.clock()
     RunService.RenderStepped:Connect(function()
@@ -799,7 +779,6 @@ function Library:CreateWindow(config)
         end
     end)
 
-    -- 5. Key System Overlay
     if useKeySystem then
         local keyModal = Instance.new("CanvasGroup")
         keyModal.Name = "KeyModal"
@@ -920,7 +899,6 @@ function Library:CreateWindow(config)
     return windowObj
 end
 
--- Dynamic Tab Creation
 function Library:CreateTab(tabName)
     local window = self
 
@@ -990,7 +968,6 @@ function Library:CreateTab(tabName)
     return tabObj
 end
 
--- Component Method: CreateToggle
 function Tab:CreateToggle(label, defaultState, callback)
     callback = callback or function() end
     local state = defaultState or false
@@ -1057,7 +1034,6 @@ function Tab:CreateToggle(label, defaultState, callback)
     end)
 end
 
--- Component Method: CreateButton
 function Tab:CreateButton(label, buttonText, defaultKey, callback)
     if type(defaultKey) == "function" then
         callback = defaultKey
@@ -1159,7 +1135,6 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
     end
 end
 
--- Component Method: CreateSlider
 function Tab:CreateSlider(label, min, max, defaultVal, callback)
     callback = callback or function() end
     min = min or 0
