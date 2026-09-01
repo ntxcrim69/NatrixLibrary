@@ -1284,16 +1284,19 @@ function Tab:CreateDropdown(label, options, defaultOption, callback)
     valueLabel.ZIndex = 7
     valueLabel.Parent = selectedBtn
 
-    -- Arrow — right-aligned inside the pill with breathing room
+    -- Arrow — right-aligned, ">" rotated 90 so it points down
     local arrowLabel = Instance.new("TextLabel")
-    arrowLabel.Size = UDim2.new(0, 24, 1, 0)
-    arrowLabel.Position = UDim2.new(1, -26, 0, 0)
+    arrowLabel.Size = UDim2.new(0, 20, 0, 20)
+    arrowLabel.Position = UDim2.new(1, -24, 0.5, -10)
+    arrowLabel.AnchorPoint = Vector2.new(0, 0)
     arrowLabel.BackgroundTransparency = 1
-    arrowLabel.Text = "▾"
+    arrowLabel.Text = ">"
     arrowLabel.TextColor3 = Theme.SubText
     arrowLabel.Font = Enum.Font.GothamBold
-    arrowLabel.TextSize = 14
+    arrowLabel.TextSize = 12
     arrowLabel.TextXAlignment = Enum.TextXAlignment.Center
+    arrowLabel.TextYAlignment = Enum.TextYAlignment.Center
+    arrowLabel.Rotation = 90
     arrowLabel.ZIndex = 7
     arrowLabel.Parent = selectedBtn
 
@@ -1400,12 +1403,12 @@ function Tab:CreateDropdown(label, options, defaultOption, callback)
         listFrame.Size = UDim2.new(0, LIST_W, 0, 0)
         listFrame.Visible = true
         animate(listFrame, {Size = UDim2.new(0, LIST_W, 0, fullHeight)}, 0.2)
-        animate(arrowLabel, {Rotation = 180}, 0.2)
+        animate(arrowLabel, {Rotation = 270}, 0.2)
     end
 
     local function closeList()
         animate(listFrame, {Size = UDim2.new(0, LIST_W, 0, 0)}, 0.2)
-        animate(arrowLabel, {Rotation = 0}, 0.2)
+        animate(arrowLabel, {Rotation = 90}, 0.2)
         task.delay(0.2, function() listFrame.Visible = false end)
     end
 
