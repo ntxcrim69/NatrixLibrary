@@ -1,22 +1,27 @@
 --[[
-    Library Wrapper - "Natrix Pro"
+    Script: Natrix Pro - Unified & Professional UI & Frontend
 ]]
 
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+local HttpService = game:GetService("HttpService")
+local Stats = game:GetService("Stats")
+
+local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
+
+-- ============================================================
+-- UI LIBRARY DEFINITION
+-- ============================================================
 local Library = {}
 Library.__index = Library
 
 local Tab = {}
 Tab.__index = Tab
-
--- Services
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local Stats = game:GetService("Stats")
-local TweenService = game:GetService("TweenService")
-local CoreGui = game:GetService("CoreGui")
-local Players = game:GetService("Players")
-local HttpService = game:GetService("HttpService")
-local LocalPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
 
 -- Configuration File Persistence System
 local ConfigFileName = "NatrixPro_Config.json"
@@ -64,17 +69,17 @@ Config.BackgroundImageId = ThemeOptions[Config.ThemeName]
 
 -- Design System Constants
 local Theme = {
-    Background = Color3.fromRGB(5, 5, 5),         -- Pitch Black (#050505)
-    Surface = Color3.fromRGB(12, 12, 12),         -- Deep gray for panels
+    Background = Color3.fromRGB(5, 5, 5),
+    Surface = Color3.fromRGB(12, 12, 12),
     SurfaceElevated = Color3.fromRGB(18, 18, 18),
-    Stroke = Color3.fromRGB(45, 45, 45),          -- Crisp contrast border
-    Accent = Color3.fromRGB(255, 255, 255),       -- Pure White
-    Text = Color3.fromRGB(255, 255, 255),         -- Pure White
-    SubText = Color3.fromRGB(160, 160, 160),      -- Light gray for inactive text
+    Stroke = Color3.fromRGB(45, 45, 45),
+    Accent = Color3.fromRGB(255, 255, 255),
+    Text = Color3.fromRGB(255, 255, 255),
+    SubText = Color3.fromRGB(160, 160, 160),
     Danger = Color3.fromRGB(255, 55, 55)
 }
 
--- Helper Functions
+-- UI Helper Functions
 local function createCorner(parent, radius)
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, radius or 4)
@@ -108,7 +113,7 @@ local function animate(object, properties, duration)
     return tween
 end
 
--- External Image Fetcher with Roblox Asset ID Fallback
+-- External Image Fetcher with Fallback
 local imageCache = {}
 local function FetchExternalImage(url, fileName, fallbackAssetId)
     if imageCache[fileName] and imageCache[fileName] ~= "" then 
@@ -117,16 +122,9 @@ local function FetchExternalImage(url, fileName, fallbackAssetId)
     
     local success, asset = pcall(function()
         if isfile and writefile and getcustomasset then
-            if isfile(fileName) and readfile then
-                local content = readfile(fileName)
-                if #content == 0 or content:find("404") or content:find("400") then
-                    if delfile then pcall(delfile, fileName) end
-                end
-            end
-            
             if not isfile(fileName) then
                 local imgData = game:HttpGet(url)
-                if imgData and #imgData > 0 and not imgData:find("404") and not imgData:find("400") then
+                if imgData and #imgData > 0 and not imgData:find("404") then
                     writefile(fileName, imgData)
                 else
                     return ""
@@ -144,7 +142,6 @@ local function FetchExternalImage(url, fileName, fallbackAssetId)
     return result
 end
 
--- Status Tag Creator
 local function createStatusTag(parent, iconUrl, fileName, labelText, xOffset, width, fallbackAssetId)
     local baseZIndex = parent.ZIndex or 1
 
@@ -152,9 +149,7 @@ local function createStatusTag(parent, iconUrl, fileName, labelText, xOffset, wi
     icon.Size = UDim2.new(0, 16, 0, 16)
     icon.Position = UDim2.new(0, xOffset + 12, 0.5, -8)
     icon.BackgroundTransparency = 1
-    
-    local loadedImg = FetchExternalImage(iconUrl, fileName, fallbackAssetId)
-    icon.Image = (loadedImg ~= "") and loadedImg or (fallbackAssetId or "")
+    icon.Image = FetchExternalImage(iconUrl, fileName, fallbackAssetId)
     icon.ZIndex = baseZIndex + 1
     icon.Parent = parent
 
@@ -223,7 +218,6 @@ function Library:CreateWindow(config)
     outerContainer.Parent = screenGui
 
     local currentToggleKey = Enum.KeyCode[Config.ToggleKey] or Enum.KeyCode.RightShift
-
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if input.KeyCode == currentToggleKey then
             outerContainer.Visible = not outerContainer.Visible
@@ -235,33 +229,11 @@ function Library:CreateWindow(config)
     topMiddleHud.Size = UDim2.new(0, 230, 0, 32)
     topMiddleHud.Position = UDim2.new(0.5, -115, 0, 10)
     topMiddleHud.BackgroundColor3 = Theme.Surface
-    topMiddleHud.BackgroundTransparency = 0
     topMiddleHud.Visible = Config.FPSCounterEnabled
     topMiddleHud.ZIndex = 50
     topMiddleHud.Parent = screenGui
     createCorner(topMiddleHud, 4)
     createStroke(topMiddleHud, Theme.Stroke)
-
-    local hudDragging, hudDragInput, hudDragStart, hudStartPos
-    topMiddleHud.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            hudDragging = true
-            hudDragStart = input.Position
-            hudStartPos = topMiddleHud.AbsolutePosition
-            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then hudDragging = false end end)
-        end
-    end)
-    topMiddleHud.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then hudDragInput = input end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if input == hudDragInput and hudDragging then
-            local delta = input.Position - hudDragStart
-            local newX = hudStartPos.X + delta.X
-            local newY = hudStartPos.Y + delta.Y
-            topMiddleHud.Position = UDim2.new(0, newX, 0, newY)
-        end
-    end)
 
     local hudFps = createStatusTag(topMiddleHud, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/speed.png", "FPS_icon.png", "FPS", 0, 115, "rbxassetid://10747373176")
     
@@ -284,85 +256,6 @@ function Library:CreateWindow(config)
     mainApp.ZIndex = 2
     mainApp.Parent = outerContainer
 
-    local bgImages = {}
-    local grainOverlays = {}
-    local panels = {}
-
-    local function addPanelBackground(panel, yOffset)
-        panel.ClipsDescendants = true
-        table.insert(panels, panel)
-
-        local bg = Instance.new("ImageLabel")
-        bg.Name = "PanelBackgroundImage"
-        bg.Size = UDim2.new(1, 0, 0, 480)
-        bg.Position = UDim2.new(0, 0, 0, -yOffset)
-        bg.BackgroundTransparency = 1
-        bg.Image = Config.BackgroundImageId
-        bg.ImageTransparency = 0
-        bg.ImageColor3 = Color3.fromRGB(85, 85, 85)
-        bg.ScaleType = Enum.ScaleType.Crop
-        bg.ZIndex = 1
-        bg.Parent = panel
-        createCorner(bg, 4)
-        table.insert(bgImages, bg)
-
-        local grainLabel = Instance.new("ImageLabel")
-        grainLabel.Name = "GrainOverlay"
-        grainLabel.Size = UDim2.new(1, 0, 0, 480)
-        grainLabel.Position = UDim2.new(0, 0, 0, -yOffset)
-        grainLabel.BackgroundTransparency = 1
-        grainLabel.ScaleType = Enum.ScaleType.Tile
-        grainLabel.TileSize = UDim2.new(0, 64, 0, 64)
-        grainLabel.ZIndex = 1
-        grainLabel.Parent = panel
-        table.insert(grainOverlays, grainLabel)
-
-        pcall(function()
-            local grainImage = Instance.new("EditableImage")
-            grainImage.Size = Vector2.new(64, 64)
-            local pixelCount = 64 * 64
-            local pixels = table.create(pixelCount * 4)
-            for i = 0, pixelCount - 1 do
-                local v = math.random()
-                pixels[i * 4 + 1] = v
-                pixels[i * 4 + 2] = v
-                pixels[i * 4 + 3] = v
-                pixels[i * 4 + 4] = v * 0.07
-            end
-            grainImage:WritePixels(Vector2.zero, Vector2.new(64, 64), pixels)
-            grainImage.Parent = grainLabel
-        end)
-
-        return bg
-    end
-
-    local function updateTheme()
-        local isDarkTheme = (Config.ThemeName == "Dark Theme") or (Config.BackgroundImageId == "")
-        local panelTransparency = isDarkTheme and 0 or 1
-        local imgTransparency = isDarkTheme and 1 or 0
-        local elemTransparency = windowObj:GetElementTransparency()
-
-        for _, panel in ipairs(panels) do
-            panel.BackgroundTransparency = panelTransparency
-        end
-
-        for _, bg in ipairs(bgImages) do
-            bg.Image = Config.BackgroundImageId
-            bg.ImageTransparency = imgTransparency
-            bg.ImageColor3 = isDarkTheme and Color3.new(1, 1, 1) or Color3.fromRGB(85, 85, 85)
-        end
-
-        for _, grain in ipairs(grainOverlays) do
-            grain.Visible = not isDarkTheme
-        end
-
-        for _, elemData in ipairs(windowObj.Elements) do
-            if elemData.Instance and elemData.Instance.Parent then
-                elemData.Instance.BackgroundTransparency = elemData.CustomTransparency or elemTransparency
-            end
-        end
-    end
-
     local topBar = Instance.new("Frame")
     topBar.Name = "TopBar"
     topBar.Size = UDim2.new(1, 0, 0, 44)
@@ -372,26 +265,6 @@ function Library:CreateWindow(config)
     topBar.Parent = mainApp
     createCorner(topBar, 4)
     createStroke(topBar, Theme.Stroke)
-    addPanelBackground(topBar, 0)
-
-    local dragging, dragInput, dragStart, startPos
-    topBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            dragStart = input.Position
-            startPos = outerContainer.Position
-            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
-        end
-    end)
-    topBar.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            outerContainer.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
 
     local tabListContainer = Instance.new("Frame")
     tabListContainer.Name = "TabList"
@@ -424,8 +297,6 @@ function Library:CreateWindow(config)
     createStroke(closeBtn, Theme.Stroke)
     windowObj:RegisterElement(closeBtn)
 
-    closeBtn.MouseEnter:Connect(function() animate(closeBtn, {BackgroundColor3 = Theme.Danger, TextColor3 = Theme.Accent, BackgroundTransparency = 0}) end)
-    closeBtn.MouseLeave:Connect(function() animate(closeBtn, {BackgroundColor3 = Theme.Surface, TextColor3 = Theme.SubText, BackgroundTransparency = windowObj:GetElementTransparency()}) end)
     closeBtn.MouseButton1Click:Connect(function() screenGui:Destroy() end)
 
     local contentArea = Instance.new("Frame")
@@ -438,506 +309,10 @@ function Library:CreateWindow(config)
     contentArea.Parent = mainApp
     createCorner(contentArea, 4)
     createStroke(contentArea, Theme.Stroke)
-    addPanelBackground(contentArea, 54)
 
     windowObj.PageHolder = contentArea
 
-    local settingsMenu = Instance.new("Frame")
-    settingsMenu.Name = "SettingsMenu"
-    settingsMenu.Size = UDim2.new(1, 0, 1, 0)
-    settingsMenu.BackgroundColor3 = Theme.Background
-    settingsMenu.BackgroundTransparency = 0
-    settingsMenu.Visible = false
-    settingsMenu.ZIndex = 10
-    settingsMenu.Parent = contentArea
-    createCorner(settingsMenu, 4)
-
-    local settingsScroll = Instance.new("ScrollingFrame")
-    settingsScroll.Name = "SettingsScroll"
-    settingsScroll.Size = UDim2.new(1, 0, 1, -50)
-    settingsScroll.Position = UDim2.new(0, 0, 0, 0)
-    settingsScroll.BackgroundTransparency = 1
-    settingsScroll.BorderSizePixel = 0
-    settingsScroll.ScrollBarThickness = 0
-    settingsScroll.ZIndex = 11
-    settingsScroll.Parent = settingsMenu
-    createPadding(settingsScroll, 12, 12, 12, 12)
-
-    local settingsLayout = Instance.new("UIListLayout")
-    settingsLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    settingsLayout.Padding = UDim.new(0, 6)
-    settingsLayout.Parent = settingsScroll
-
-    settingsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        settingsScroll.CanvasSize = UDim2.new(0, 0, 0, settingsLayout.AbsoluteContentSize.Y + 24)
-    end)
-
-    local function makeSettingsRow()
-        local row = Instance.new("Frame")
-        row.Size = UDim2.new(1, 0, 0, 42)
-        row.BackgroundColor3 = Theme.Surface
-        row.ZIndex = 11
-        row.Parent = settingsScroll
-        createCorner(row, 4)
-        createStroke(row, Theme.Stroke)
-        createPadding(row, 0, 0, 4, 12)
-        windowObj:RegisterElement(row)
-        return row
-    end
-
-    local function makeRowLabel(row, text, widthScale)
-        local lbl = Instance.new("TextLabel")
-        lbl.Size = UDim2.new(widthScale or 0.55, 0, 1, 0)
-        lbl.BackgroundTransparency = 1
-        lbl.Text = text
-        lbl.TextColor3 = Theme.Text
-        lbl.Font = Enum.Font.GothamMedium
-        lbl.TextSize = 13
-        lbl.TextXAlignment = Enum.TextXAlignment.Left
-        lbl.ZIndex = 12
-        lbl.Parent = row
-        return lbl
-    end
-
-    do
-        local row = makeSettingsRow()
-        makeRowLabel(row, "FPS & Ping Counter")
-
-        local stTrack = Instance.new("Frame")
-        stTrack.Size = UDim2.new(0, 40, 0, 20)
-        stTrack.Position = UDim2.new(1, -44, 0.5, -10)
-        stTrack.BackgroundColor3 = Config.FPSCounterEnabled and Theme.Accent or Theme.Background
-        stTrack.BackgroundTransparency = 0
-        stTrack.ZIndex = 12
-        stTrack.Parent = row
-        createCorner(stTrack, 20)
-        local stTrackStroke = createStroke(stTrack, Config.FPSCounterEnabled and Theme.Accent or Theme.Stroke)
-
-        local stKnob = Instance.new("Frame")
-        stKnob.Size = UDim2.new(0, 14, 0, 14)
-        stKnob.Position = Config.FPSCounterEnabled and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7)
-        stKnob.BackgroundColor3 = Config.FPSCounterEnabled and Theme.Background or Theme.SubText
-        stKnob.ZIndex = 13
-        stKnob.Parent = stTrack
-        createCorner(stKnob, 14)
-
-        local stBtn = Instance.new("TextButton")
-        stBtn.Size = UDim2.new(1, 0, 1, 0)
-        stBtn.BackgroundTransparency = 1
-        stBtn.Text = ""
-        stBtn.ZIndex = 14
-        stBtn.Parent = row
-
-        stBtn.MouseButton1Click:Connect(function()
-            Config.FPSCounterEnabled = not Config.FPSCounterEnabled
-            topMiddleHud.Visible = Config.FPSCounterEnabled
-            stTrackStroke.Color = Config.FPSCounterEnabled and Theme.Accent or Theme.Stroke
-            animate(stTrack, {BackgroundColor3 = Config.FPSCounterEnabled and Theme.Accent or Theme.Background, BackgroundTransparency = 0})
-            animate(stKnob, {Position = Config.FPSCounterEnabled and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7), BackgroundColor3 = Config.FPSCounterEnabled and Theme.Background or Theme.SubText})
-            SaveConfig()
-        end)
-    end
-
-    do
-        local row = makeSettingsRow()
-        makeRowLabel(row, "Theme", 0.38)
-
-        local themeButton = Instance.new("TextButton")
-        themeButton.Size = UDim2.new(0, 150, 0, 26)
-        themeButton.Position = UDim2.new(1, -150, 0.5, -13)
-        themeButton.BackgroundColor3 = Theme.Background
-        themeButton.Text = Config.ThemeName .. "  v"
-        themeButton.TextColor3 = Theme.SubText
-        themeButton.Font = Enum.Font.Gotham
-        themeButton.TextSize = 11
-        themeButton.ZIndex = 14
-        themeButton.Parent = row
-        createCorner(themeButton, 4)
-        createStroke(themeButton, Theme.Stroke)
-        windowObj:RegisterElement(themeButton)
-
-        local themeList = Instance.new("Frame")
-        themeList.Size = UDim2.new(0, 150, 0, 60)
-        themeList.Position = UDim2.new(1, -150, 1, 4)
-        themeList.BackgroundColor3 = Theme.SurfaceElevated
-        themeList.BackgroundTransparency = 0
-        themeList.Visible = false
-        themeList.ZIndex = 30
-        themeList.Parent = row
-        createCorner(themeList, 4)
-        createStroke(themeList, Theme.Stroke)
-        createPadding(themeList, 4, 4, 4, 4)
-
-        local themeLayout = Instance.new("UIListLayout")
-        themeLayout.Padding = UDim.new(0, 2)
-        themeLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        themeLayout.Parent = themeList
-
-        for themeName, imageId in pairs(ThemeOptions) do
-            local option = Instance.new("TextButton")
-            option.Size = UDim2.new(1, 0, 0, 24)
-            option.BackgroundColor3 = Theme.SurfaceElevated
-            option.BackgroundTransparency = 0
-            option.Text = themeName
-            option.TextColor3 = Theme.Text
-            option.Font = Enum.Font.Gotham
-            option.TextSize = 11
-            option.ZIndex = 31
-            option.Parent = themeList
-            option.MouseButton1Click:Connect(function()
-                Config.ThemeName = themeName
-                Config.BackgroundImageId = imageId
-                updateTheme()
-                themeButton.Text = themeName .. "  v"
-                themeList.Visible = false
-                SaveConfig()
-            end)
-        end
-
-        themeButton.MouseButton1Click:Connect(function()
-            themeList.Visible = not themeList.Visible
-        end)
-    end
-
-    do
-        local row = makeSettingsRow()
-        makeRowLabel(row, "Menu Toggle Key")
-
-        local skBtn = Instance.new("TextButton")
-        skBtn.Size = UDim2.new(0, 65, 0, 24)
-        skBtn.Position = UDim2.new(1, -65, 0.5, -12)
-        skBtn.BackgroundColor3 = Theme.Background
-        skBtn.Text = currentToggleKey.Name
-        skBtn.TextColor3 = Theme.SubText
-        skBtn.Font = Enum.Font.Gotham
-        skBtn.TextSize = 11
-        skBtn.ZIndex = 12
-        skBtn.Parent = row
-        createCorner(skBtn, 4)
-        createStroke(skBtn, Theme.Stroke)
-        windowObj:RegisterElement(skBtn)
-
-        local skBinding = false
-        skBtn.MouseButton1Click:Connect(function()
-            if skBinding then return end
-            skBinding = true
-            skBtn.Text = "..."
-            local connection
-            connection = UserInputService.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.Keyboard then
-                    currentToggleKey = input.KeyCode
-                    Config.ToggleKey = currentToggleKey.Name
-                    skBtn.Text = currentToggleKey.Name
-                    skBinding = false
-                    SaveConfig()
-                    connection:Disconnect()
-                end
-            end)
-        end)
-    end
-
-    local closeSettingsBtn = Instance.new("TextButton")
-    closeSettingsBtn.Size = UDim2.new(0, 100, 0, 30)
-    closeSettingsBtn.Position = UDim2.new(0.5, -50, 1, -40)
-    closeSettingsBtn.BackgroundColor3 = Theme.Surface
-    closeSettingsBtn.Text = "Back"
-    closeSettingsBtn.TextColor3 = Theme.Accent
-    closeSettingsBtn.Font = Enum.Font.GothamBold
-    closeSettingsBtn.TextSize = 12
-    closeSettingsBtn.ZIndex = 11
-    closeSettingsBtn.Parent = settingsMenu
-    createCorner(closeSettingsBtn, 4)
-    createStroke(closeSettingsBtn, Theme.Stroke)
-    windowObj:RegisterElement(closeSettingsBtn)
-
-    closeSettingsBtn.MouseButton1Click:Connect(function()
-        settingsMenu.Visible = false
-    end)
-
-    function windowObj:AddSettingToggle(label, defaultState, callback)
-        callback = callback or function() end
-        local state = defaultState or false
-        local row = makeSettingsRow()
-        makeRowLabel(row, label)
-
-        local track = Instance.new("Frame")
-        track.Size = UDim2.new(0, 40, 0, 20)
-        track.Position = UDim2.new(1, -44, 0.5, -10)
-        track.BackgroundColor3 = state and Theme.Accent or Theme.Background
-        track.BackgroundTransparency = 0
-        track.ZIndex = 12
-        track.Parent = row
-        createCorner(track, 20)
-        local trackStroke = createStroke(track, state and Theme.Accent or Theme.Stroke)
-
-        local knob = Instance.new("Frame")
-        knob.Size = UDim2.new(0, 14, 0, 14)
-        knob.Position = state and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7)
-        knob.BackgroundColor3 = state and Theme.Background or Theme.SubText
-        knob.ZIndex = 13
-        knob.Parent = track
-        createCorner(knob, 14)
-
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, 0, 1, 0)
-        btn.BackgroundTransparency = 1
-        btn.Text = ""
-        btn.ZIndex = 14
-        btn.Parent = row
-
-        btn.MouseButton1Click:Connect(function()
-            state = not state
-            trackStroke.Color = state and Theme.Accent or Theme.Stroke
-            animate(track, {BackgroundColor3 = state and Theme.Accent or Theme.Background, BackgroundTransparency = 0})
-            animate(knob, {Position = state and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7), BackgroundColor3 = state and Theme.Background or Theme.SubText})
-            task.spawn(callback, state)
-        end)
-    end
-
-    function windowObj:AddSettingButton(label, buttonText, callback)
-        callback = callback or function() end
-        buttonText = buttonText or "Run"
-        local row = makeSettingsRow()
-        makeRowLabel(row, label)
-
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(0, 110, 0, 24)
-        btn.Position = UDim2.new(1, -110, 0.5, -12)
-        btn.BackgroundColor3 = Theme.SurfaceElevated
-        btn.Text = buttonText
-        btn.TextColor3 = Theme.Accent
-        btn.Font = Enum.Font.GothamMedium
-        btn.TextSize = 11
-        btn.ZIndex = 12
-        btn.Parent = row
-        createCorner(btn, 4)
-        createStroke(btn, Theme.Stroke)
-        windowObj:RegisterElement(btn)
-
-        btn.MouseEnter:Connect(function() animate(btn, {BackgroundColor3 = Theme.Stroke, BackgroundTransparency = 0}) end)
-        btn.MouseLeave:Connect(function() animate(btn, {BackgroundColor3 = Theme.SurfaceElevated, BackgroundTransparency = windowObj:GetElementTransparency()}) end)
-        btn.MouseButton1Click:Connect(function() task.spawn(callback) end)
-    end
-
-    function windowObj:AddSettingDropdown(label, options, defaultOption, callback)
-        callback = callback or function() end
-        options = options or {}
-        local selected = defaultOption or options[1] or ""
-        local isOpen = false
-        local row = makeSettingsRow()
-        makeRowLabel(row, label, 0.4)
-
-        local pillWidth = 160
-        local pill = Instance.new("TextButton")
-        pill.Size = UDim2.new(0, pillWidth, 0, 26)
-        pill.Position = UDim2.new(1, -pillWidth, 0.5, -13)
-        pill.BackgroundColor3 = Theme.Background
-        pill.Text = ""
-        pill.ZIndex = 12
-        pill.Parent = row
-        createCorner(pill, 4)
-        createStroke(pill, Theme.Stroke)
-        windowObj:RegisterElement(pill)
-
-        local pillLbl = Instance.new("TextLabel")
-        pillLbl.Size = UDim2.new(1, -28, 1, 0)
-        pillLbl.Position = UDim2.new(0, 10, 0, 0)
-        pillLbl.BackgroundTransparency = 1
-        pillLbl.Text = selected
-        pillLbl.TextColor3 = Theme.SubText
-        pillLbl.Font = Enum.Font.Gotham
-        pillLbl.TextSize = 11
-        pillLbl.TextXAlignment = Enum.TextXAlignment.Left
-        pillLbl.ZIndex = 13
-        pillLbl.Parent = pill
-
-        local chev = Instance.new("TextLabel")
-        chev.Size = UDim2.new(0, 18, 0, 18)
-        chev.Position = UDim2.new(1, -22, 0.5, -9)
-        chev.BackgroundTransparency = 1
-        chev.Text = "v"
-        chev.TextColor3 = Theme.SubText
-        chev.Font = Enum.Font.GothamBold
-        chev.TextSize = 9
-        chev.ZIndex = 13
-        chev.Parent = pill
-
-        local itemH, listPad = 28, 6
-        local listH = math.max(#options, 1) * itemH + listPad * 2
-
-        local listPanel = Instance.new("Frame")
-        listPanel.Size = UDim2.new(0, pillWidth, 0, listH)
-        listPanel.Parent = settingsMenu
-        listPanel.BackgroundColor3 = Theme.SurfaceElevated
-        listPanel.BackgroundTransparency = 0
-        listPanel.Visible = false
-        listPanel.ZIndex = 60
-        createCorner(listPanel, 6)
-        createStroke(listPanel, Theme.Stroke)
-        createPadding(listPanel, listPad, listPad, listPad, listPad)
-
-        local listLayout = Instance.new("UIListLayout")
-        listLayout.Padding = UDim.new(0, 2)
-        listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-        listLayout.Parent = listPanel
-
-        local optBtns = {}
-
-        local function setSelected(val)
-            selected = val
-            pillLbl.Text = val
-            for _, b in ipairs(optBtns) do
-                local active = b.Text == val
-                b.TextColor3 = active and Theme.Accent or Theme.Text
-                animate(b, {BackgroundColor3 = active and Theme.Surface or Theme.SurfaceElevated, BackgroundTransparency = active and 0 or 1}, 0.15)
-            end
-        end
-
-        local function closeList()
-            isOpen = false
-            listPanel.Visible = false
-            animate(chev, {TextColor3 = Theme.SubText}, 0.15)
-        end
-
-        local function openList()
-            isOpen = true
-            local pAbs = pill.AbsolutePosition
-            local sAbs = settingsMenu.AbsolutePosition
-            listPanel.Position = UDim2.new(
-                0, pAbs.X - sAbs.X, 
-                0, (pAbs.Y - sAbs.Y) + pill.AbsoluteSize.Y + 6
-            )
-            listPanel.Visible = true
-            animate(chev, {TextColor3 = Theme.Accent}, 0.15)
-        end
-
-        settingsScroll:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
-            if isOpen then closeList() end
-        end)
-
-        for _, optName in ipairs(options) do
-            local btn = Instance.new("TextButton")
-            btn.Size = UDim2.new(1, 0, 0, itemH)
-            btn.BackgroundColor3 = (optName == selected) and Theme.Surface or Theme.SurfaceElevated
-            btn.BackgroundTransparency = (optName == selected) and 0 or 1
-            btn.Text = optName
-            btn.TextColor3 = (optName == selected) and Theme.Accent or Theme.Text
-            btn.Font = Enum.Font.GothamMedium
-            btn.TextSize = 11
-            btn.ZIndex = 61
-            btn.Parent = listPanel
-            createCorner(btn, 4)
-            table.insert(optBtns, btn)
-
-            btn.MouseEnter:Connect(function()
-                if btn.Text ~= selected then animate(btn, {BackgroundTransparency = 0, BackgroundColor3 = Theme.Stroke}, 0.1) end
-            end)
-            btn.MouseLeave:Connect(function()
-                if btn.Text ~= selected then animate(btn, {BackgroundTransparency = 1, BackgroundColor3 = Theme.SurfaceElevated}, 0.1) end
-            end)
-            btn.MouseButton1Click:Connect(function()
-                setSelected(optName)
-                closeList()
-                task.spawn(callback, optName)
-            end)
-        end
-
-        pill.MouseEnter:Connect(function() animate(pill, {BackgroundColor3 = Theme.SurfaceElevated, BackgroundTransparency = 0}, 0.15) end)
-        pill.MouseLeave:Connect(function() animate(pill, {BackgroundColor3 = Theme.Background, BackgroundTransparency = windowObj:GetElementTransparency()}, 0.15) end)
-        pill.MouseButton1Click:Connect(function() if isOpen then closeList() else openList() end end)
-
-        UserInputService.InputBegan:Connect(function(input)
-            if input.UserInputType ~= Enum.UserInputType.MouseButton1 or not isOpen then return end
-            local mPos = UserInputService:GetMouseLocation()
-            local pA, pS = pill.AbsolutePosition, pill.AbsoluteSize
-            local lA, lS = listPanel.AbsolutePosition, listPanel.AbsoluteSize
-            local inPill = mPos.X >= pA.X and mPos.X <= pA.X + pS.X and mPos.Y >= pA.Y and mPos.Y <= pA.Y + pS.Y
-            local inList = mPos.X >= lA.X and mPos.X <= lA.X + lS.X and mPos.Y >= lA.Y and mPos.Y <= lA.Y + lS.Y
-            if not inPill and not inList then closeList() end
-        end)
-
-        return { SetSelected = function(_, v) setSelected(v) end, GetSelected = function() return selected end }
-    end
-
-    local bottomBar = Instance.new("Frame")
-    bottomBar.Name = "BottomBar"
-    bottomBar.Size = UDim2.new(1, 0, 0, 46)
-    bottomBar.Position = UDim2.new(0, 0, 1, -46)
-    bottomBar.BackgroundColor3 = Theme.Background
-    bottomBar.ZIndex = 2
-    bottomBar.Parent = mainApp
-    createCorner(bottomBar, 4)
-    createStroke(bottomBar, Theme.Stroke)
-    addPanelBackground(bottomBar, 434)
-
-    local bottomContent = Instance.new("Frame")
-    bottomContent.Name = "BottomContent"
-    bottomContent.Size = UDim2.new(1, 0, 1, 0)
-    bottomContent.BackgroundTransparency = 1
-    bottomContent.ZIndex = 2
-    bottomContent.Parent = bottomBar
-    createPadding(bottomContent, 6, 6, 8, 8)
-
-    local fpsWrapper = Instance.new("Frame")
-    fpsWrapper.Size = UDim2.new(0, 105, 1, 0)
-    fpsWrapper.BackgroundColor3 = Theme.Surface
-    fpsWrapper.ZIndex = 3
-    fpsWrapper.Parent = bottomContent
-    createCorner(fpsWrapper, 4)
-    createStroke(fpsWrapper, Theme.Stroke)
-    windowObj:RegisterElement(fpsWrapper)
-    
-    local pingWrapper = Instance.new("Frame")
-    pingWrapper.Size = UDim2.new(0, 115, 1, 0)
-    pingWrapper.Position = UDim2.new(0, 113, 0, 0)
-    pingWrapper.BackgroundColor3 = Theme.Surface
-    pingWrapper.ZIndex = 3
-    pingWrapper.Parent = bottomContent
-    createCorner(pingWrapper, 4)
-    createStroke(pingWrapper, Theme.Stroke)
-    windowObj:RegisterElement(pingWrapper)
-
-    local fpsLabel = createStatusTag(fpsWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/speed.png", "FPS_icon.png", "FPS", 0, 105, "rbxassetid://10747373176")
-    local pingLabel = createStatusTag(pingWrapper, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/network.png", "PING_icon.png", "PING", 0, 115, "rbxassetid://10734934585")
-
-    local settingsBtn = Instance.new("ImageButton")
-    settingsBtn.Name = "SettingsBtn"
-    settingsBtn.Size = UDim2.new(0, 32, 0, 32)
-    settingsBtn.Position = UDim2.new(1, -32, 0.5, -16)
-    settingsBtn.BackgroundColor3 = Theme.Surface
-    settingsBtn.AutoButtonColor = false
-    settingsBtn.ZIndex = 3
-    settingsBtn.Parent = bottomContent
-    createCorner(settingsBtn, 4)
-    createStroke(settingsBtn, Theme.Stroke)
-    windowObj:RegisterElement(settingsBtn)
-
-    local settingsIcon = Instance.new("ImageLabel")
-    settingsIcon.Name = "SettingsIcon"
-    settingsIcon.Size = UDim2.new(0, 18, 0, 18)
-    settingsIcon.Position = UDim2.new(0.5, -9, 0.5, -9)
-    settingsIcon.BackgroundTransparency = 1
-
-    local fetchedSettings = FetchExternalImage("https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/settings.png", "Settings_icon.png", "rbxassetid://10734950309")
-    settingsIcon.Image = (fetchedSettings ~= "") and fetchedSettings or "rbxassetid://10734950309"
-    settingsIcon.ImageColor3 = Color3.fromRGB(255, 255, 255)
-    settingsIcon.ZIndex = 4
-    settingsIcon.Parent = settingsBtn
-
-    settingsBtn.MouseEnter:Connect(function() 
-        animate(settingsBtn, {BackgroundColor3 = Theme.Accent, BackgroundTransparency = 0}) 
-        animate(settingsIcon, {ImageColor3 = Theme.Background})
-    end)
-    settingsBtn.MouseLeave:Connect(function() 
-        animate(settingsBtn, {BackgroundColor3 = Theme.Surface, BackgroundTransparency = windowObj:GetElementTransparency()}) 
-        animate(settingsIcon, {ImageColor3 = Color3.fromRGB(255, 255, 255)})
-    end)
-    settingsBtn.MouseButton1Click:Connect(function()
-        settingsMenu.Visible = not settingsMenu.Visible
-    end)
-
-    updateTheme()
-
+    -- FPS & Ping Loop
     local frames = 0
     local lastUpdate = os.clock()
     RunService.RenderStepped:Connect(function()
@@ -945,150 +320,11 @@ function Library:CreateWindow(config)
         local now = os.clock()
         if now - lastUpdate >= 1 then
             local currentFPS = tostring(frames)
-            fpsLabel.Text = "FPS: " .. currentFPS
             hudFps.Text = "FPS: " .. currentFPS
             frames = 0
             lastUpdate = now
         end
     end)
-
-    task.spawn(function()
-        while task.wait(1) do
-            local pingVal = 0
-            local success, result = pcall(function()
-                return LocalPlayer:GetNetworkPing()
-            end)
-            
-            if success and result then
-                pingVal = math.floor(result * 1000)
-            else
-                pcall(function()
-                    pingVal = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
-                end)
-            end
-            
-            local currentPing = tostring(pingVal)
-            pingLabel.Text = "PING: " .. currentPing
-            hudPing.Text = "PING: " .. currentPing
-        end
-    end)
-
-    if useKeySystem then
-        local keyModal = Instance.new("CanvasGroup")
-        keyModal.Name = "KeyModal"
-        keyModal.Size = UDim2.new(0, 440, 0, 320)
-        keyModal.Position = UDim2.new(0.5, -220, 0.5, -160)
-        keyModal.BackgroundColor3 = Theme.Background
-        keyModal.BackgroundTransparency = 0
-        keyModal.BorderSizePixel = 0
-        keyModal.ZIndex = 100
-        keyModal.Parent = outerContainer
-        createCorner(keyModal, 4)
-        createStroke(keyModal, Theme.Stroke)
-
-        local kDragging, kDragInput, kDragStart, kStartPos
-        keyModal.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.MouseButton1 then
-                kDragging = true
-                kDragStart = input.Position
-                kStartPos = outerContainer.Position
-                input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then kDragging = false end end)
-            end
-        end)
-        keyModal.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement then kDragInput = input end end)
-        UserInputService.InputChanged:Connect(function(input)
-            if input == kDragInput and kDragging then
-                local delta = input.Position - kDragStart
-                outerContainer.Position = UDim2.new(kStartPos.X.Scale, kStartPos.X.Offset + delta.X, kStartPos.Y.Scale, kStartPos.Y.Offset + delta.Y)
-            end
-        end)
-
-        local discordBtn = Instance.new("ImageButton")
-        discordBtn.Size = UDim2.new(0, 24, 0, 24)
-        discordBtn.Position = UDim2.new(1, -36, 0, 12)
-        discordBtn.BackgroundTransparency = 1
-        local fetchedDiscord = FetchExternalImage("https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/discord.png", "NatrixDiscord.png", "rbxassetid://10709768652")
-        discordBtn.Image = (fetchedDiscord ~= "") and fetchedDiscord or "rbxassetid://10709768652"
-        discordBtn.ZIndex = 101
-        discordBtn.Parent = keyModal
-        
-        discordBtn.MouseEnter:Connect(function() animate(discordBtn, {Size = UDim2.new(0, 26, 0, 26), Position = UDim2.new(1, -37, 0, 11)}) end)
-        discordBtn.MouseLeave:Connect(function() animate(discordBtn, {Size = UDim2.new(0, 24, 0, 24), Position = UDim2.new(1, -36, 0, 12)}) end)
-        discordBtn.MouseButton1Click:Connect(function() if setclipboard and keySettings.Discord then setclipboard(keySettings.Discord) end end)
-
-        local logoLabel = Instance.new("ImageLabel")
-        logoLabel.Size = UDim2.new(0, 100, 0, 100)
-        logoLabel.Position = UDim2.new(0.5, -50, 0.1, 0)
-        logoLabel.BackgroundTransparency = 1
-        local fetchedLogo = FetchExternalImage("https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/Natrixlogo.png", "NatrixLogo.png", "rbxassetid://10734950309")
-        logoLabel.Image = (fetchedLogo ~= "") and fetchedLogo or "rbxassetid://10734950309"
-        logoLabel.ScaleType = Enum.ScaleType.Fit
-        logoLabel.ZIndex = 101
-        logoLabel.Parent = keyModal
-
-        local keyInput = Instance.new("TextBox")
-        keyInput.Size = UDim2.new(0, 300, 0, 46)
-        keyInput.Position = UDim2.new(0.5, -150, 0.52, 0)
-        keyInput.BackgroundColor3 = Theme.Surface
-        keyInput.BackgroundTransparency = 0
-        keyInput.TextColor3 = Theme.Accent
-        keyInput.PlaceholderText = "Enter Authentication Key"
-        keyInput.PlaceholderColor3 = Theme.SubText
-        keyInput.Text = ""
-        keyInput.Font = Enum.Font.GothamMedium
-        keyInput.TextSize = 13
-        keyInput.ZIndex = 101
-        keyInput.Parent = keyModal
-        createCorner(keyInput, 4)
-        createStroke(keyInput, Theme.Stroke)
-
-        local checkBtn = Instance.new("TextButton")
-        checkBtn.Size = UDim2.new(0, 140, 0, 42)
-        checkBtn.Position = UDim2.new(0.5, -70, 0.72, 0)
-        checkBtn.BackgroundColor3 = Theme.Surface
-        checkBtn.BackgroundTransparency = 0
-        checkBtn.TextColor3 = Theme.Accent
-        checkBtn.Text = "Authenticate"
-        checkBtn.Font = Enum.Font.GothamBold
-        checkBtn.TextSize = 13
-        checkBtn.ZIndex = 101
-        checkBtn.Parent = keyModal
-        createCorner(checkBtn, 4)
-        createStroke(checkBtn, Theme.Stroke)
-
-        checkBtn.MouseEnter:Connect(function() animate(checkBtn, {BackgroundColor3 = Theme.SurfaceElevated, BackgroundTransparency = 0}) end)
-        checkBtn.MouseLeave:Connect(function() animate(checkBtn, {BackgroundColor3 = Theme.Surface, BackgroundTransparency = 0}) end)
-
-        checkBtn.MouseButton1Click:Connect(function()
-            local entered = keyInput.Text
-            local verified = false
-            if type(keySettings.Keys) == "table" then
-                for _, validKey in ipairs(keySettings.Keys) do
-                    if entered == validKey then
-                        verified = true
-                        break
-                    end
-                end
-            end
-
-            if verified then
-                local outTween = TweenService:Create(keyModal, TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -220, 0.45, -160), GroupTransparency = 1})
-                outTween:Play()
-                outTween.Completed:Wait()
-                keyModal:Destroy()
-                mainApp.GroupTransparency = 1
-                mainApp.Visible = true
-                TweenService:Create(mainApp, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {GroupTransparency = 0}):Play()
-            else
-                keyInput.Text = ""
-                keyInput.PlaceholderText = "Invalid Key!"
-                local errTween = animate(keyInput, {BackgroundColor3 = Theme.Danger, BackgroundTransparency = 0})
-                task.wait(1)
-                animate(keyInput, {BackgroundColor3 = Theme.Surface, BackgroundTransparency = 0})
-                keyInput.PlaceholderText = "Enter Authentication Key"
-            end
-        end)
-    end
 
     return windowObj
 end
@@ -1192,7 +428,6 @@ function Tab:CreateToggle(label, defaultState, callback)
     switchTrack.Size = UDim2.new(0, 40, 0, 20)
     switchTrack.Position = UDim2.new(1, -44, 0.5, -10)
     switchTrack.BackgroundColor3 = state and Theme.Accent or Theme.Background
-    switchTrack.BackgroundTransparency = 0
     switchTrack.ZIndex = 6
     switchTrack.Parent = toggleFrame
     createCorner(switchTrack, 20)
@@ -1216,14 +451,8 @@ function Tab:CreateToggle(label, defaultState, callback)
     interactBtn.MouseButton1Click:Connect(function()
         state = not state
         trackStroke.Color = state and Theme.Accent or Theme.Stroke
-        animate(switchTrack, {
-            BackgroundColor3 = state and Theme.Accent or Theme.Background,
-            BackgroundTransparency = 0
-        })
-        animate(switchKnob, {
-            Position = state and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7),
-            BackgroundColor3 = state and Theme.Background or Theme.SubText
-        })
+        animate(switchTrack, {BackgroundColor3 = state and Theme.Accent or Theme.Background})
+        animate(switchKnob, {Position = state and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7), BackgroundColor3 = state and Theme.Background or Theme.SubText})
         task.spawn(callback, state)
     end)
 end
@@ -1235,7 +464,6 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
     end
     callback = callback or function() end
     buttonText = buttonText or "Button"
-    local currentKey = defaultKey
     local window = self.Window
 
     local containerFrame = Instance.new("Frame")
@@ -1259,10 +487,9 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
     textLabel.ZIndex = 6
     textLabel.Parent = containerFrame
 
-    local actionBtnWidth = currentKey and 100 or 110
     local actionBtn = Instance.new("TextButton")
-    actionBtn.Size = UDim2.new(0, actionBtnWidth, 0, 24)
-    actionBtn.Position = UDim2.new(1, -actionBtnWidth, 0.5, -12)
+    actionBtn.Size = UDim2.new(0, 110, 0, 24)
+    actionBtn.Position = UDim2.new(1, -110, 0.5, -12)
     actionBtn.BackgroundColor3 = Theme.SurfaceElevated
     actionBtn.Text = buttonText
     actionBtn.TextColor3 = Theme.Accent
@@ -1274,59 +501,9 @@ function Tab:CreateButton(label, buttonText, defaultKey, callback)
     createStroke(actionBtn, Theme.Stroke)
     window:RegisterElement(actionBtn)
 
-    actionBtn.MouseEnter:Connect(function() animate(actionBtn, {BackgroundColor3 = Theme.Stroke, BackgroundTransparency = 0}) end)
-    actionBtn.MouseLeave:Connect(function() animate(actionBtn, {BackgroundColor3 = Theme.SurfaceElevated, BackgroundTransparency = window:GetElementTransparency()}) end)
-
     actionBtn.MouseButton1Click:Connect(function()
-        task.spawn(callback, currentKey)
+        task.spawn(callback)
     end)
-
-    if currentKey then
-        local keybindBtn = Instance.new("TextButton")
-        keybindBtn.Size = UDim2.new(0, 40, 0, 24)
-        keybindBtn.Position = UDim2.new(1, -(actionBtnWidth + 46), 0.5, -12)
-        keybindBtn.BackgroundColor3 = Theme.Background
-        keybindBtn.Text = currentKey.Name
-        keybindBtn.TextColor3 = Theme.SubText
-        keybindBtn.Font = Enum.Font.Gotham
-        keybindBtn.TextSize = 11
-        keybindBtn.ZIndex = 6
-        keybindBtn.Parent = containerFrame
-        createCorner(keybindBtn, 4)
-        createStroke(keybindBtn, Theme.Stroke)
-        window:RegisterElement(keybindBtn)
-
-        local binding = false
-        keybindBtn.MouseButton1Click:Connect(function()
-            if binding then return end
-            binding = true
-            keybindBtn.Text = "..."
-            local connection
-            connection = UserInputService.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.Keyboard then
-                    if input.KeyCode == Enum.KeyCode.Escape then
-                        keybindBtn.Text = currentKey.Name
-                        binding = false
-                        connection:Disconnect()
-                    else
-                        currentKey = input.KeyCode
-                        keybindBtn.Text = currentKey.Name
-                        binding = false
-                        connection:Disconnect()
-                    end
-                end
-            end)
-        end)
-
-        UserInputService.InputBegan:Connect(function(input, gameProcessed)
-            if gameProcessed then return end
-            if input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode == currentKey then
-                if not binding then
-                    task.spawn(callback, currentKey)
-                end
-            end
-        end)
-    end
 end
 
 function Tab:CreateSlider(label, min, max, defaultVal, callback)
@@ -1368,11 +545,9 @@ function Tab:CreateSlider(label, min, max, defaultVal, callback)
     window:RegisterElement(track)
 
     local initialPercent = (defaultVal - min) / (max - min)
-
     local fill = Instance.new("Frame")
     fill.Size = UDim2.new(initialPercent, 0, 1, 0)
     fill.BackgroundColor3 = Theme.Accent
-    fill.BackgroundTransparency = 0
     fill.ZIndex = 7
     fill.Parent = track
     createCorner(fill, 10)
@@ -1390,10 +565,7 @@ function Tab:CreateSlider(label, min, max, defaultVal, callback)
 
     local dragging = false
     local function updateValue(input)
-        local mousePos = input.Position.X
-        local trackPos = track.AbsolutePosition.X
-        local trackSize = track.AbsoluteSize.X
-        local percent = math.clamp((mousePos - trackPos) / trackSize, 0, 1)
+        local percent = math.clamp((input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
         local val = math.floor(min + (max - min) * percent)
         animate(fill, {Size = UDim2.new(percent, 0, 1, 0)}, 0.1)
         valueLabel.Text = tostring(val)
@@ -1424,14 +596,12 @@ function Tab:CreateDropdown(label, options, defaultOption, callback)
     callback = callback or function() end
     options = options or {}
     local selected = defaultOption or options[1] or ""
-    local isOpen = false
     local window = self.Window
 
     local dropFrame = Instance.new("Frame")
     dropFrame.Size = UDim2.new(1, 0, 0, 42)
     dropFrame.BackgroundColor3 = Theme.Surface
     dropFrame.ZIndex = 5
-    dropFrame.ClipsDescendants = false
     dropFrame.Parent = self.Container
     createCorner(dropFrame, 4)
     createStroke(dropFrame, Theme.Stroke)
@@ -1449,141 +619,109 @@ function Tab:CreateDropdown(label, options, defaultOption, callback)
     textLabel.ZIndex = 6
     textLabel.Parent = dropFrame
 
-    local pillWidth = 150
     local pill = Instance.new("TextButton")
-    pill.Size = UDim2.new(0, pillWidth, 0, 26)
-    pill.Position = UDim2.new(1, -pillWidth, 0.5, -13)
+    pill.Size = UDim2.new(0, 150, 0, 26)
+    pill.Position = UDim2.new(1, -150, 0.5, -13)
     pill.BackgroundColor3 = Theme.Background
-    pill.Text = ""
+    pill.Text = selected
+    pill.TextColor3 = Theme.SubText
+    pill.Font = Enum.Font.Gotham
+    pill.TextSize = 11
     pill.ZIndex = 6
     pill.Parent = dropFrame
     createCorner(pill, 4)
     createStroke(pill, Theme.Stroke)
     window:RegisterElement(pill)
 
-    local pillLabel = Instance.new("TextLabel")
-    pillLabel.Size = UDim2.new(1, -28, 1, 0)
-    pillLabel.Position = UDim2.new(0, 10, 0, 0)
-    pillLabel.BackgroundTransparency = 1
-    pillLabel.Text = selected
-    pillLabel.TextColor3 = Theme.SubText
-    pillLabel.Font = Enum.Font.Gotham
-    pillLabel.TextSize = 11
-    pillLabel.TextXAlignment = Enum.TextXAlignment.Left
-    pillLabel.ZIndex = 7
-    pillLabel.Parent = pill
-
-    local chevron = Instance.new("TextLabel")
-    chevron.Size = UDim2.new(0, 18, 0, 18)
-    chevron.Position = UDim2.new(1, -22, 0.5, -9)
-    chevron.BackgroundTransparency = 1
-    chevron.Text = "v"
-    chevron.TextColor3 = Theme.SubText
-    chevron.Font = Enum.Font.GothamBold
-    chevron.TextSize = 9
-    chevron.ZIndex = 7
-    chevron.Parent = pill
-
-    local optionCount = math.max(#options, 1)
-    local itemH = 28
-    local listPad = 6
-    local listH = optionCount * itemH + listPad * 2
-
-    local listPanel = Instance.new("Frame")
-    listPanel.Size = UDim2.new(0, pillWidth, 0, listH)
-    listPanel.Parent = self.Page
-    listPanel.BackgroundColor3 = Theme.SurfaceElevated
-    listPanel.BackgroundTransparency = 0
-    listPanel.Visible = false
-    listPanel.ZIndex = 50
-    createCorner(listPanel, 6)
-    createStroke(listPanel, Theme.Stroke)
-    createPadding(listPanel, listPad, listPad, listPad, listPad)
-
-    local listLayout = Instance.new("UIListLayout")
-    listLayout.Padding = UDim.new(0, 2)
-    listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    listLayout.Parent = listPanel
-
-    local optionButtons = {}
-
-    local function setSelected(value)
-        selected = value
-        pillLabel.Text = value
-        for _, btn in ipairs(optionButtons) do
-            local active = btn.Text == value
-            btn.TextColor3 = active and Theme.Accent or Theme.Text
-            animate(btn, {
-                BackgroundColor3 = active and Theme.Surface or Theme.SurfaceElevated,
-                BackgroundTransparency = active and 0 or 1,
-            }, 0.15)
-        end
-    end
-
-    local function closeList()
-        isOpen = false
-        listPanel.Visible = false
-        animate(chevron, {TextColor3 = Theme.SubText}, 0.15)
-    end
-
-    local function openList()
-        isOpen = true
-        local pAbs = pill.AbsolutePosition
-        local pageAbs = self.Page.AbsolutePosition
-        listPanel.Position = UDim2.new(
-            0, pAbs.X - pageAbs.X,
-            0, (pAbs.Y - pageAbs.Y) + pill.AbsoluteSize.Y + 6
-        )
-        listPanel.Visible = true
-        animate(chevron, {TextColor3 = Theme.Accent}, 0.15)
-    end
-
-    self.Container:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
-        if isOpen then closeList() end
+    pill.MouseButton1Click:Connect(function()
+        -- Simple toggle rotation for options
+        local currentIndex = table.find(options, selected) or 1
+        currentIndex = currentIndex % #options + 1
+        selected = options[currentIndex]
+        pill.Text = selected
+        task.spawn(callback, selected)
     end)
 
-    for _, optName in ipairs(options) do
-        local btn = Instance.new("TextButton")
-        btn.Size = UDim2.new(1, 0, 0, itemH)
-        btn.BackgroundColor3 = (optName == selected) and Theme.Surface or Theme.SurfaceElevated
-        btn.BackgroundTransparency = (optName == selected) and 0 or 1
-        btn.Text = optName
-        btn.TextColor3 = (optName == selected) and Theme.Accent or Theme.Text
-        btn.Font = Enum.Font.GothamMedium
-        btn.TextSize = 11
-        btn.ZIndex = 51
-        btn.Parent = listPanel
-        createCorner(btn, 4)
-        table.insert(optionButtons, btn)
-
-        btn.MouseEnter:Connect(function()
-            if btn.Text ~= selected then animate(btn, {BackgroundTransparency = 0, BackgroundColor3 = Theme.Stroke}, 0.1) end
-        end)
-        btn.MouseLeave:Connect(function()
-            if btn.Text ~= selected then animate(btn, {BackgroundTransparency = 1, BackgroundColor3 = Theme.SurfaceElevated}, 0.1) end
-        end)
-        btn.MouseButton1Click:Connect(function()
-            setSelected(optName)
-            closeList()
-            task.spawn(callback, optName)
-        end)
-    end
-
-    pill.MouseEnter:Connect(function() animate(pill, {BackgroundColor3 = Theme.SurfaceElevated, BackgroundTransparency = 0}, 0.15) end)
-    pill.MouseLeave:Connect(function() animate(pill, {BackgroundColor3 = Theme.Background, BackgroundTransparency = windowObj:GetElementTransparency()}, 0.15) end)
-    pill.MouseButton1Click:Connect(function() if isOpen then closeList() else openList() end end)
-
-    UserInputService.InputBegan:Connect(function(input)
-        if input.UserInputType ~= Enum.UserInputType.MouseButton1 or not isOpen then return end
-        local mPos = UserInputService:GetMouseLocation()
-        local pA, pS = pill.AbsolutePosition, pill.AbsoluteSize
-        local lA, lS = listPanel.AbsolutePosition, listPanel.AbsoluteSize
-        local inPill = mPos.X >= pA.X and mPos.X <= pA.X + pS.X and mPos.Y >= pA.Y and mPos.Y <= pA.Y + pS.Y
-        local inList = mPos.X >= lA.X and mPos.X <= lA.X + lS.X and mPos.Y >= lA.Y and mPos.Y <= lA.Y + lS.Y
-        if not inPill and not inList then closeList() end
-    end)
-
-    return { SetSelected = function(_, v) setSelected(v) end, GetSelected = function() return selected end }
+    return { SetSelected = function(_, v) selected = v pill.Text = v end, GetSelected = function() return selected end }
 end
 
+-- CRITICAL FIX: Ensure Library is returned correctly
 return Library
+
+-- ============================================================
+-- FRONTEND IMPLEMENTATION
+-- ============================================================
+local Window = Library:CreateWindow({
+    Name = "Natrix Pro",
+    KeySystem = false
+})
+
+local VisualsTab   = Window:CreateTab("Visuals")
+local TeleportsTab = Window:CreateTab("Teleports")
+local AutoTab      = Window:CreateTab("Auto")
+local CombatTab    = Window:CreateTab("Combat")
+
+-- Core States & Variables
+local SAFE_ZONE_AIR_POS   = Vector3.new(-1654, 285, -1012)
+local SAFE_ZONE_WATER_POS = Vector3.new(-1654, 55, -1012)
+
+local isUnderwaterMode  = false
+local airPlatform       = nil
+local waterPlatform     = nil
+local autoReturnEnabled = false
+
+local activeEspCategories = {}
+local currentEspElements  = {}
+local lastEspScan         = 0
+
+local function createPlatform(position, color)
+    local part = Instance.new("Part")
+    part.Size         = Vector3.new(40, 1, 40)
+    part.Position     = position - Vector3.new(0, 4, 0)
+    part.Anchored     = true
+    part.Transparency = 0.5
+    part.Color        = color
+    part.CanCollide   = true
+    part.Parent       = workspace
+    return part
+end
+
+local function teleportTo(position)
+    local character = LocalPlayer.Character
+    if not character then return end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if rootPart then rootPart.CFrame = CFrame.new(position) end
+end
+
+-- UI Component Bindings
+VisualsTab:CreateToggle("No Fog", false, function(enabled)
+    if enabled then
+        Lighting.FogStart = 0
+        Lighting.FogEnd   = 9e9
+    else
+        Lighting.FogStart = 0
+        Lighting.FogEnd   = 100000
+    end
+end)
+
+TeleportsTab:CreateButton("Safe Zone", "Teleport", Enum.KeyCode.L, function()
+    if airPlatform then airPlatform:Destroy() airPlatform = nil end
+    isUnderwaterMode = false
+    airPlatform = createPlatform(SAFE_ZONE_AIR_POS, Color3.fromRGB(0, 191, 255))
+    teleportTo(SAFE_ZONE_AIR_POS)
+end)
+
+TeleportsTab:CreateButton("Safe Zone (Underwater)", "Teleport", Enum.KeyCode.U, function()
+    if waterPlatform then waterPlatform:Destroy() waterPlatform = nil end
+    isUnderwaterMode = true
+    waterPlatform = createPlatform(SAFE_ZONE_WATER_POS, Color3.fromRGB(0, 255, 128))
+    teleportTo(SAFE_ZONE_WATER_POS)
+end)
+
+AutoTab:CreateToggle("Auto Return to Safe Zone", false, function(state)
+    autoReturnEnabled = state
+end)
+
+CombatTab:CreateDropdown("Hitbox Mode", {"OFF", "Rage Legit", "Rage"}, "OFF", function(selected)
+    print("Hitbox mode set to: " .. selected)
+end)
