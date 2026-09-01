@@ -1284,15 +1284,15 @@ function Tab:CreateDropdown(label, options, defaultOption, callback)
     valueLabel.ZIndex = 7
     valueLabel.Parent = selectedBtn
 
-    -- Arrow — right-aligned inside the pill
+    -- Arrow — right-aligned inside the pill with breathing room
     local arrowLabel = Instance.new("TextLabel")
-    arrowLabel.Size = UDim2.new(0, 20, 1, 0)
-    arrowLabel.Position = UDim2.new(1, -22, 0, 0)
+    arrowLabel.Size = UDim2.new(0, 24, 1, 0)
+    arrowLabel.Position = UDim2.new(1, -26, 0, 0)
     arrowLabel.BackgroundTransparency = 1
     arrowLabel.Text = "▾"
     arrowLabel.TextColor3 = Theme.SubText
     arrowLabel.Font = Enum.Font.GothamBold
-    arrowLabel.TextSize = 13
+    arrowLabel.TextSize = 14
     arrowLabel.TextXAlignment = Enum.TextXAlignment.Center
     arrowLabel.ZIndex = 7
     arrowLabel.Parent = selectedBtn
