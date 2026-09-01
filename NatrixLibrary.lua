@@ -790,12 +790,12 @@ function Library:CreateWindow(config)
 
         local listPanel = Instance.new("Frame")
         listPanel.Size = UDim2.new(0, pillWidth, 0, listH)
-        listPanel.Position = UDim2.new(1, -pillWidth, 1, 6)
+        -- Reparent the settings menu dropdown so it avoids scrolling frame clipping
+        listPanel.Parent = settingsMenu
         listPanel.BackgroundColor3 = Theme.SurfaceElevated
         listPanel.BackgroundTransparency = 0
         listPanel.Visible = false
         listPanel.ZIndex = 60
-        listPanel.Parent = row
         createCorner(listPanel, 6)
         createStroke(listPanel, Theme.Stroke)
         createPadding(listPanel, listPad, listPad, listPad, listPad)
@@ -825,9 +825,23 @@ function Library:CreateWindow(config)
 
         local function openList()
             isOpen = true
+            
+            -- Calculate precise absolute positioning inside the settings menu context
+            local pAbs = pill.AbsolutePosition
+            local sAbs = settingsMenu.AbsolutePosition
+            listPanel.Position = UDim2.new(
+                0, pAbs.X - sAbs.X, 
+                0, (pAbs.Y - sAbs.Y) + pill.AbsoluteSize.Y + 6
+            )
+            
             listPanel.Visible = true
             animate(chev, {TextColor3 = Theme.Accent}, 0.15)
         end
+
+        -- Make sure we close if the user begins scrolling while open
+        settingsScroll:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
+            if isOpen then closeList() end
+        end)
 
         for _, optName in ipairs(options) do
             local btn = Instance.new("TextButton")
@@ -1444,7 +1458,6 @@ function Tab:CreateSlider(label, min, max, defaultVal, callback)
     end)
 end
 
-return Library
 -- Component Method: CreateDropdown
 function Tab:CreateDropdown(label, options, defaultOption, callback)
 	callback = callback or function() end
@@ -1521,12 +1534,12 @@ function Tab:CreateDropdown(label, options, defaultOption, callback)
 
 	local listPanel = Instance.new("Frame")
 	listPanel.Size = UDim2.new(0, pillWidth, 0, listH)
-	listPanel.Position = UDim2.new(1, -pillWidth, 1, 6)
+    -- Reparent the listPanel up to the page frame to avoid scrolling frame clipping
+	listPanel.Parent = self.Page
 	listPanel.BackgroundColor3 = Theme.SurfaceElevated
 	listPanel.BackgroundTransparency = 0
 	listPanel.Visible = false
 	listPanel.ZIndex = 50
-	listPanel.Parent = dropFrame
 	createCorner(listPanel, 6)
 	createStroke(listPanel, Theme.Stroke)
 	createPadding(listPanel, listPad, listPad, listPad, listPad)
@@ -1559,9 +1572,23 @@ function Tab:CreateDropdown(label, options, defaultOption, callback)
 
 	local function openList()
 		isOpen = true
+        
+        -- Calculate absolute positioning relative to self.Page
+        local pAbs = pill.AbsolutePosition
+        local pageAbs = self.Page.AbsolutePosition
+        listPanel.Position = UDim2.new(
+            0, pAbs.X - pageAbs.X, 
+            0, (pAbs.Y - pageAbs.Y) + pill.AbsoluteSize.Y + 6
+        )
+        
 		listPanel.Visible = true
 		animate(chevron, {TextColor3 = Theme.Accent}, 0.15)
 	end
+
+    -- Close the dropdown automatically if the user begins scrolling
+    self.Container:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
+        if isOpen then closeList() end
+    end)
 
 	for _, optName in ipairs(options) do
 		local optBtn = Instance.new("TextButton")
@@ -1623,3 +1650,5 @@ function Tab:CreateDropdown(label, options, defaultOption, callback)
 		GetSelected = function() return selected end,
 	}
 end
+
+return Library
