@@ -214,57 +214,19 @@ function Library:CreateWindow(config)
         element.BackgroundTransparency = customTransparency or windowObj:GetElementTransparency()
     end
 
-    local outerContainer = Instance.new("CanvasGroup")
+    local outerContainer = Instance.new("Frame")
     outerContainer.Name = "OuterContainer"
     outerContainer.Size = UDim2.new(0, 600, 0, 480)
-    outerContainer.Position = UDim2.new(0.5, -300, 0.5, -248)
+    outerContainer.Position = UDim2.new(0.5, -300, 0.5, -240)
     outerContainer.BackgroundTransparency = 1
-    outerContainer.GroupTransparency = 1
     outerContainer.ZIndex = 1
     outerContainer.Parent = screenGui
 
-    -- REST position is where the window sits when fully open.
-    -- We keep it as a UDim2 so it stays correct after the user drags.
-    local restPosition = UDim2.new(0.5, -300, 0.5, -240)
-
-    -- Fade in on first open — wait one frame so AbsoluteSize is ready
-    task.spawn(function()
-        task.wait()
-        TweenService:Create(outerContainer, TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-            GroupTransparency = 0,
-            Position = restPosition,
-        }):Play()
-    end)
-
-    local guiOpen = true
     local currentToggleKey = Enum.KeyCode[Config.ToggleKey] or Enum.KeyCode.RightShift
-
-    local function fadeOut()
-        guiOpen = false
-        -- Capture current offset position so fade works after dragging
-        local p = outerContainer.Position
-        local slideTarget = UDim2.new(p.X.Scale, p.X.Offset, p.Y.Scale, p.Y.Offset + 12)
-        TweenService:Create(outerContainer, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.In), {
-            GroupTransparency = 1,
-            Position = slideTarget,
-        }):Play()
-    end
-
-    local function fadeIn()
-        guiOpen = true
-        local p = outerContainer.Position
-        -- Snap up 12px, then tween back down while fading in
-        outerContainer.Position = UDim2.new(p.X.Scale, p.X.Offset, p.Y.Scale, p.Y.Offset - 12)
-        local slideTarget = UDim2.new(p.X.Scale, p.X.Offset, p.Y.Scale, p.Y.Offset)
-        TweenService:Create(outerContainer, TweenInfo.new(0.35, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
-            GroupTransparency = 0,
-            Position = slideTarget,
-        }):Play()
-    end
 
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if input.KeyCode == currentToggleKey then
-            if guiOpen then fadeOut() else fadeIn() end
+            outerContainer.Visible = not outerContainer.Visible
         end
     end)
 
@@ -412,38 +374,23 @@ function Library:CreateWindow(config)
     createStroke(topBar, Theme.Stroke)
     addPanelBackground(topBar, 0)
 
-    -- Drag — track everything in screen-space pixels, no AbsolutePosition reads mid-drag
-    local dragActive  = false
-    local dragOffsetX = 0   -- where inside the window the user clicked
-    local dragOffsetY = 0
-    local winX        = 0   -- window top-left at drag start (pixels)
-    local winY        = 0
-
+    local dragging, dragInput, dragStart, startPos
     topBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1
-            or input.UserInputType == Enum.UserInputType.Touch then
-            -- AbsolutePosition is safe to read once on mouse-down (layout is settled)
-            local abs     = outerContainer.AbsolutePosition
-            winX          = abs.X
-            winY          = abs.Y
-            dragOffsetX   = input.Position.X - winX
-            dragOffsetY   = input.Position.Y - winY
-            dragActive    = true
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragActive = false
-                end
-            end)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = outerContainer.Position
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
         end
     end)
-
+    topBar.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+    end)
     UserInputService.InputChanged:Connect(function(input)
-        if not dragActive then return end
-        if input.UserInputType ~= Enum.UserInputType.MouseMovement
-            and input.UserInputType ~= Enum.UserInputType.Touch then return end
-        local newX = input.Position.X - dragOffsetX
-        local newY = input.Position.Y - dragOffsetY
-        outerContainer.Position = UDim2.fromOffset(newX, newY)
+        if input == dragInput and dragging then
+            local delta = input.Position - dragStart
+            outerContainer.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
     end)
 
     local tabListContainer = Instance.new("Frame")
