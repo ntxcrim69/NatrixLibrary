@@ -1252,3 +1252,181 @@ function Tab:CreateSlider(label, min, max, defaultVal, callback)
 end
 
 return Library
+-- Component Method: CreateDropdown
+function Tab:CreateDropdown(label, options, defaultOption, callback)
+	callback = callback or function() end
+	options = options or {}
+	local selected = defaultOption or options[1] or ""
+	local isOpen = false
+	local window = self.Window
+
+	-- Outer row frame — same height as other components.
+	local dropFrame = Instance.new("Frame")
+	dropFrame.Size = UDim2.new(1, 0, 0, 42)
+	dropFrame.BackgroundColor3 = Theme.Surface
+	dropFrame.ZIndex = 5
+	dropFrame.ClipsDescendants = false
+	dropFrame.Parent = self.Container
+	createCorner(dropFrame, 4)
+	createStroke(dropFrame, Theme.Stroke)
+	createPadding(dropFrame, 0, 0, 4, 12)
+	window:RegisterElement(dropFrame)
+
+	local textLabel = Instance.new("TextLabel")
+	textLabel.Size = UDim2.new(0.45, 0, 1, 0)
+	textLabel.BackgroundTransparency = 1
+	textLabel.Text = label
+	textLabel.TextColor3 = Theme.Text
+	textLabel.Font = Enum.Font.GothamMedium
+	textLabel.TextSize = 13
+	textLabel.TextXAlignment = Enum.TextXAlignment.Left
+	textLabel.ZIndex = 6
+	textLabel.Parent = dropFrame
+
+	-- Pill button showing the current selection with a chevron.
+	local pillWidth = 150
+	local pill = Instance.new("TextButton")
+	pill.Size = UDim2.new(0, pillWidth, 0, 26)
+	pill.Position = UDim2.new(1, -pillWidth, 0.5, -13)
+	pill.BackgroundColor3 = Theme.Background
+	pill.Text = ""
+	pill.ZIndex = 6
+	pill.Parent = dropFrame
+	createCorner(pill, 4)
+	createStroke(pill, Theme.Stroke)
+	window:RegisterElement(pill)
+
+	local pillLabel = Instance.new("TextLabel")
+	pillLabel.Size = UDim2.new(1, -28, 1, 0)
+	pillLabel.Position = UDim2.new(0, 10, 0, 0)
+	pillLabel.BackgroundTransparency = 1
+	pillLabel.Text = selected
+	pillLabel.TextColor3 = Theme.SubText
+	pillLabel.Font = Enum.Font.Gotham
+	pillLabel.TextSize = 11
+	pillLabel.TextXAlignment = Enum.TextXAlignment.Left
+	pillLabel.ZIndex = 7
+	pillLabel.Parent = pill
+
+	-- Chevron indicator that brightens on open.
+	local chevron = Instance.new("TextLabel")
+	chevron.Size = UDim2.new(0, 18, 0, 18)
+	chevron.Position = UDim2.new(1, -22, 0.5, -9)
+	chevron.BackgroundTransparency = 1
+	chevron.Text = "v"
+	chevron.TextColor3 = Theme.SubText
+	chevron.Font = Enum.Font.GothamBold
+	chevron.TextSize = 9
+	chevron.ZIndex = 7
+	chevron.Parent = pill
+
+	-- List panel floats above siblings via high ZIndex.
+	local optionCount = math.max(#options, 1)
+	local itemH = 28
+	local listPad = 6
+	local listH = optionCount * itemH + listPad * 2
+
+	local listPanel = Instance.new("Frame")
+	listPanel.Size = UDim2.new(0, pillWidth, 0, listH)
+	listPanel.Position = UDim2.new(1, -pillWidth, 1, 6)
+	listPanel.BackgroundColor3 = Theme.SurfaceElevated
+	listPanel.BackgroundTransparency = 0
+	listPanel.Visible = false
+	listPanel.ZIndex = 50
+	listPanel.Parent = dropFrame
+	createCorner(listPanel, 6)
+	createStroke(listPanel, Theme.Stroke)
+	createPadding(listPanel, listPad, listPad, listPad, listPad)
+
+	local listLayout = Instance.new("UIListLayout")
+	listLayout.Padding = UDim.new(0, 2)
+	listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	listLayout.Parent = listPanel
+
+	local optionButtons = {}
+
+	local function setSelected(value)
+		selected = value
+		pillLabel.Text = value
+		for _, btn in ipairs(optionButtons) do
+			local active = btn.Text == value
+			btn.TextColor3 = active and Theme.Accent or Theme.Text
+			animate(btn, {
+				BackgroundColor3 = active and Theme.Surface or Theme.SurfaceElevated,
+				BackgroundTransparency = active and 0 or 1,
+			}, 0.15)
+		end
+	end
+
+	local function closeList()
+		isOpen = false
+		listPanel.Visible = false
+		animate(chevron, {TextColor3 = Theme.SubText}, 0.15)
+	end
+
+	local function openList()
+		isOpen = true
+		listPanel.Visible = true
+		animate(chevron, {TextColor3 = Theme.Accent}, 0.15)
+	end
+
+	for _, optName in ipairs(options) do
+		local optBtn = Instance.new("TextButton")
+		optBtn.Size = UDim2.new(1, 0, 0, itemH)
+		optBtn.BackgroundColor3 = (optName == selected) and Theme.Surface or Theme.SurfaceElevated
+		optBtn.BackgroundTransparency = (optName == selected) and 0 or 1
+		optBtn.Text = optName
+		optBtn.TextColor3 = (optName == selected) and Theme.Accent or Theme.Text
+		optBtn.Font = Enum.Font.GothamMedium
+		optBtn.TextSize = 11
+		optBtn.ZIndex = 51
+		optBtn.Parent = listPanel
+		createCorner(optBtn, 4)
+		table.insert(optionButtons, optBtn)
+
+		optBtn.MouseEnter:Connect(function()
+			if optBtn.Text ~= selected then
+				animate(optBtn, {BackgroundTransparency = 0, BackgroundColor3 = Theme.Stroke}, 0.1)
+			end
+		end)
+		optBtn.MouseLeave:Connect(function()
+			if optBtn.Text ~= selected then
+				animate(optBtn, {BackgroundTransparency = 1, BackgroundColor3 = Theme.SurfaceElevated}, 0.1)
+			end
+		end)
+		optBtn.MouseButton1Click:Connect(function()
+			setSelected(optName)
+			closeList()
+			task.spawn(callback, optName)
+		end)
+	end
+
+	pill.MouseEnter:Connect(function()
+		animate(pill, {BackgroundColor3 = Theme.SurfaceElevated, BackgroundTransparency = 0}, 0.15)
+	end)
+	pill.MouseLeave:Connect(function()
+		animate(pill, {BackgroundColor3 = Theme.Background, BackgroundTransparency = window:GetElementTransparency()}, 0.15)
+	end)
+	pill.MouseButton1Click:Connect(function()
+		if isOpen then closeList() else openList() end
+	end)
+
+	-- Close when clicking anywhere outside.
+	UserInputService.InputBegan:Connect(function(input)
+		if input.UserInputType ~= Enum.UserInputType.MouseButton1 then return end
+		if not isOpen then return end
+		local mPos  = UserInputService:GetMouseLocation()
+		local pAbs  = pill.AbsolutePosition
+		local pSz   = pill.AbsoluteSize
+		local lAbs  = listPanel.AbsolutePosition
+		local lSz   = listPanel.AbsoluteSize
+		local inPill = mPos.X >= pAbs.X and mPos.X <= pAbs.X + pSz.X and mPos.Y >= pAbs.Y and mPos.Y <= pAbs.Y + pSz.Y
+		local inList = mPos.X >= lAbs.X and mPos.X <= lAbs.X + lSz.X and mPos.Y >= lAbs.Y and mPos.Y <= lAbs.Y + lSz.Y
+		if not inPill and not inList then closeList() end
+	end)
+
+	return {
+		SetSelected = function(_, value) setSelected(value) end,
+		GetSelected = function() return selected end,
+	}
+end
