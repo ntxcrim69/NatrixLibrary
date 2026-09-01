@@ -1233,12 +1233,12 @@ function Tab:CreateDropdown(label, options, defaultOption, callback)
     local isOpen = false
     local window = self.Window
 
-    -- Outer row frame (same 42px height as Toggle/Button)
+    -- Outer row frame — same 42 px height as Toggle / Button
     local dropFrame = Instance.new("Frame")
     dropFrame.Name = label .. "_Dropdown"
     dropFrame.Size = UDim2.new(1, 0, 0, 42)
     dropFrame.BackgroundColor3 = Theme.Surface
-    dropFrame.ClipsDescendants = false   -- allow list to overflow
+    dropFrame.ClipsDescendants = false
     dropFrame.ZIndex = 5
     dropFrame.Parent = self.Container
     createCorner(dropFrame, 4)
@@ -1258,101 +1258,163 @@ function Tab:CreateDropdown(label, options, defaultOption, callback)
     textLabel.ZIndex = 6
     textLabel.Parent = dropFrame
 
-    -- Selected-value button on the right
+    -- ── Selected-value pill (right side) ──────────────────────────────────
+    -- Container button — invisible background, handles clicks
     local selectedBtn = Instance.new("TextButton")
-    selectedBtn.Size = UDim2.new(0, 150, 0, 26)
-    selectedBtn.Position = UDim2.new(1, -154, 0.5, -13)
+    selectedBtn.Size = UDim2.new(0, 154, 0, 28)
+    selectedBtn.Position = UDim2.new(1, -158, 0.5, -14)
     selectedBtn.BackgroundColor3 = Theme.Background
-    selectedBtn.Text = selected .. "  ▾"
-    selectedBtn.TextColor3 = Theme.SubText
-    selectedBtn.Font = Enum.Font.Gotham
-    selectedBtn.TextSize = 11
+    selectedBtn.Text = ""                          -- text drawn by children
     selectedBtn.ZIndex = 6
     selectedBtn.Parent = dropFrame
-    createCorner(selectedBtn, 4)
+    createCorner(selectedBtn, 6)
     createStroke(selectedBtn, Theme.Stroke)
     window:RegisterElement(selectedBtn)
 
-    -- Drop-down list panel (hidden by default)
+    -- Selected value — left-aligned inside the pill
+    local valueLabel = Instance.new("TextLabel")
+    valueLabel.Size = UDim2.new(1, -28, 1, 0)     -- leave room for arrow
+    valueLabel.Position = UDim2.new(0, 10, 0, 0)
+    valueLabel.BackgroundTransparency = 1
+    valueLabel.Text = selected
+    valueLabel.TextColor3 = Theme.Text
+    valueLabel.Font = Enum.Font.GothamMedium
+    valueLabel.TextSize = 13
+    valueLabel.TextXAlignment = Enum.TextXAlignment.Left
+    valueLabel.ZIndex = 7
+    valueLabel.Parent = selectedBtn
+
+    -- Arrow — right-aligned inside the pill
+    local arrowLabel = Instance.new("TextLabel")
+    arrowLabel.Size = UDim2.new(0, 20, 1, 0)
+    arrowLabel.Position = UDim2.new(1, -22, 0, 0)
+    arrowLabel.BackgroundTransparency = 1
+    arrowLabel.Text = "▾"
+    arrowLabel.TextColor3 = Theme.SubText
+    arrowLabel.Font = Enum.Font.GothamBold
+    arrowLabel.TextSize = 13
+    arrowLabel.TextXAlignment = Enum.TextXAlignment.Center
+    arrowLabel.ZIndex = 7
+    arrowLabel.Parent = selectedBtn
+
+    -- ── Drop-down list panel ───────────────────────────────────────────────
+    local LIST_W    = 154
+    local ITEM_H    = 30
+    local ITEM_GAP  = 3
+    local LIST_PAD  = 6   -- top + bottom inner padding
+    local fullHeight = #options * ITEM_H + math.max(0, #options - 1) * ITEM_GAP + LIST_PAD
+
     local listFrame = Instance.new("Frame")
     listFrame.Name = "DropdownList"
-    listFrame.Size = UDim2.new(0, 150, 0, 0)   -- height set dynamically
-    listFrame.Position = UDim2.new(1, -154, 1, 4)
-    listFrame.BackgroundColor3 = Theme.SurfaceElevated
+    listFrame.Size = UDim2.new(0, LIST_W, 0, 0)
+    listFrame.Position = UDim2.new(1, -158, 1, 6)
+    listFrame.BackgroundColor3 = Color3.fromRGB(22, 22, 22)
     listFrame.BackgroundTransparency = 0
     listFrame.ClipsDescendants = true
     listFrame.Visible = false
     listFrame.ZIndex = 50
     listFrame.Parent = dropFrame
-    createCorner(listFrame, 4)
+    createCorner(listFrame, 6)
     createStroke(listFrame, Theme.Stroke)
-    createPadding(listFrame, 4, 4, 4, 4)
+
+    -- Inner padding frame so ClipsDescendants + corner work correctly
+    local listInner = Instance.new("Frame")
+    listInner.Size = UDim2.new(1, -8, 1, -LIST_PAD)
+    listInner.Position = UDim2.new(0, 4, 0, LIST_PAD / 2)
+    listInner.BackgroundTransparency = 1
+    listInner.ZIndex = 51
+    listInner.Parent = listFrame
 
     local listLayout = Instance.new("UIListLayout")
-    listLayout.Padding = UDim.new(0, 2)
+    listLayout.Padding = UDim.new(0, ITEM_GAP)
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    listLayout.Parent = listFrame
+    listLayout.Parent = listInner
 
-    -- One row per option
-    local ITEM_H = 26
-    local PAD     = 8  -- top+bottom padding total
-    local fullHeight = #options * ITEM_H + (#options - 1) * 2 + PAD
+    -- ── Option rows ────────────────────────────────────────────────────────
+    local optionBtns = {}
+
+    local function refreshColors()
+        for _, pair in ipairs(optionBtns) do
+            local isSelected = (pair.name == selected)
+            animate(pair.btn, {
+                BackgroundColor3 = isSelected and Color3.fromRGB(40, 40, 40) or Color3.fromRGB(28, 28, 28),
+                BackgroundTransparency = 0,
+            }, 0.12)
+            pair.lbl.TextColor3 = isSelected and Theme.Accent or Theme.SubText
+        end
+    end
 
     for _, optionName in ipairs(options) do
+        local isSelected = (optionName == selected)
+
         local optBtn = Instance.new("TextButton")
         optBtn.Size = UDim2.new(1, 0, 0, ITEM_H)
-        optBtn.BackgroundColor3 = Theme.SurfaceElevated
+        optBtn.BackgroundColor3 = isSelected and Color3.fromRGB(40, 40, 40) or Color3.fromRGB(28, 28, 28)
         optBtn.BackgroundTransparency = 0
-        optBtn.Text = optionName
-        optBtn.TextColor3 = optionName == selected and Theme.Accent or Theme.Text
-        optBtn.Font = Enum.Font.Gotham
-        optBtn.TextSize = 11
-        optBtn.ZIndex = 51
-        optBtn.Parent = listFrame
-        createCorner(optBtn, 4)
+        optBtn.Text = ""
+        optBtn.ZIndex = 52
+        optBtn.Parent = listInner
+        createCorner(optBtn, 5)
+
+        local optLbl = Instance.new("TextLabel")
+        optLbl.Size = UDim2.new(1, -12, 1, 0)
+        optLbl.Position = UDim2.new(0, 10, 0, 0)
+        optLbl.BackgroundTransparency = 1
+        optLbl.Text = optionName
+        optLbl.TextColor3 = isSelected and Theme.Accent or Theme.SubText
+        optLbl.Font = Enum.Font.GothamMedium
+        optLbl.TextSize = 13
+        optLbl.TextXAlignment = Enum.TextXAlignment.Left
+        optLbl.ZIndex = 53
+        optLbl.Parent = optBtn
+
+        table.insert(optionBtns, {btn = optBtn, lbl = optLbl, name = optionName})
 
         optBtn.MouseEnter:Connect(function()
-            animate(optBtn, {BackgroundColor3 = Theme.Stroke, BackgroundTransparency = 0})
+            if optionName ~= selected then
+                animate(optBtn, {BackgroundColor3 = Color3.fromRGB(36, 36, 36), BackgroundTransparency = 0}, 0.1)
+            end
         end)
         optBtn.MouseLeave:Connect(function()
-            animate(optBtn, {BackgroundColor3 = Theme.SurfaceElevated, BackgroundTransparency = 0})
+            if optionName ~= selected then
+                animate(optBtn, {BackgroundColor3 = Color3.fromRGB(28, 28, 28), BackgroundTransparency = 0}, 0.1)
+            end
         end)
 
         optBtn.MouseButton1Click:Connect(function()
             selected = optionName
-            selectedBtn.Text = selected .. "  ▾"
+            valueLabel.Text = selected
+            refreshColors()
 
-            -- Update text colours across all option buttons
-            for _, child in ipairs(listFrame:GetChildren()) do
-                if child:IsA("TextButton") then
-                    child.TextColor3 = (child.Text == optionName) and Theme.Accent or Theme.Text
-                end
-            end
-
-            -- Close list
-            animate(listFrame, {Size = UDim2.new(0, 150, 0, 0)}, 0.2)
+            -- Rotate arrow back and close
+            animate(listFrame, {Size = UDim2.new(0, LIST_W, 0, 0)}, 0.2)
             task.delay(0.2, function() listFrame.Visible = false end)
             isOpen = false
-            selectedBtn.Text = selected .. "  ▾"
 
             task.spawn(callback, selected)
         end)
     end
 
-    -- Toggle open/close
+    -- ── Toggle open / close ────────────────────────────────────────────────
+    local function openList()
+        listFrame.Size = UDim2.new(0, LIST_W, 0, 0)
+        listFrame.Visible = true
+        animate(listFrame, {Size = UDim2.new(0, LIST_W, 0, fullHeight)}, 0.2)
+        animate(arrowLabel, {Rotation = 180}, 0.2)
+    end
+
+    local function closeList()
+        animate(listFrame, {Size = UDim2.new(0, LIST_W, 0, 0)}, 0.2)
+        animate(arrowLabel, {Rotation = 0}, 0.2)
+        task.delay(0.2, function() listFrame.Visible = false end)
+    end
+
     selectedBtn.MouseButton1Click:Connect(function()
         isOpen = not isOpen
-        if isOpen then
-            listFrame.Size = UDim2.new(0, 150, 0, 0)
-            listFrame.Visible = true
-            animate(listFrame, {Size = UDim2.new(0, 150, 0, fullHeight)}, 0.2)
-        else
-            animate(listFrame, {Size = UDim2.new(0, 150, 0, 0)}, 0.2)
-            task.delay(0.2, function() listFrame.Visible = false end)
-        end
+        if isOpen then openList() else closeList() end
     end)
 
-    -- Public API so callers can read / set the value programmatically
+    -- ── Public API ─────────────────────────────────────────────────────────
     local dropObj = {}
 
     function dropObj:GetValue()
@@ -1363,12 +1425,8 @@ function Tab:CreateDropdown(label, options, defaultOption, callback)
         for _, optionName in ipairs(options) do
             if optionName == newOption then
                 selected = newOption
-                selectedBtn.Text = selected .. "  ▾"
-                for _, child in ipairs(listFrame:GetChildren()) do
-                    if child:IsA("TextButton") then
-                        child.TextColor3 = (child.Text == newOption) and Theme.Accent or Theme.Text
-                    end
-                end
+                valueLabel.Text = selected
+                refreshColors()
                 task.spawn(callback, selected)
                 return
             end
