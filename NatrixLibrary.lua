@@ -454,6 +454,7 @@ function Library:CreateWindow(config)
     windowObj.PageHolder = contentArea
 
     -- 3. Settings Menu Overlay
+    -- Settings menu — scrollable so user-added rows never overflow.
     local settingsMenu = Instance.new("Frame")
     settingsMenu.Name = "SettingsMenu"
     settingsMenu.Size = UDim2.new(1, 0, 1, 0)
@@ -464,207 +465,200 @@ function Library:CreateWindow(config)
     settingsMenu.Parent = contentArea
     createCorner(settingsMenu, 4)
 
-    -- Settings Item 1: FPS Counter
-    local settingsToggleFrame = Instance.new("Frame")
-    settingsToggleFrame.Size = UDim2.new(1, -24, 0, 42)
-    settingsToggleFrame.Position = UDim2.new(0, 12, 0, 16)
-    settingsToggleFrame.BackgroundColor3 = Theme.Surface
-    settingsToggleFrame.ZIndex = 11
-    settingsToggleFrame.Parent = settingsMenu
-    createCorner(settingsToggleFrame, 4)
-    createStroke(settingsToggleFrame, Theme.Stroke)
-    createPadding(settingsToggleFrame, 0, 0, 4, 12)
-    windowObj:RegisterElement(settingsToggleFrame)
+    -- Scrollable container for all settings rows.
+    local settingsScroll = Instance.new("ScrollingFrame")
+    settingsScroll.Name = "SettingsScroll"
+    settingsScroll.Size = UDim2.new(1, 0, 1, -50)
+    settingsScroll.Position = UDim2.new(0, 0, 0, 0)
+    settingsScroll.BackgroundTransparency = 1
+    settingsScroll.BorderSizePixel = 0
+    settingsScroll.ScrollBarThickness = 0
+    settingsScroll.ZIndex = 11
+    settingsScroll.Parent = settingsMenu
+    createPadding(settingsScroll, 12, 12, 12, 12)
 
-    local stText = Instance.new("TextLabel")
-    stText.Size = UDim2.new(0.6, 0, 1, 0)
-    stText.BackgroundTransparency = 1
-    stText.Text = "FPS & Ping Counter"
-    stText.TextColor3 = Theme.Text
-    stText.Font = Enum.Font.GothamMedium
-    stText.TextSize = 13
-    stText.TextXAlignment = Enum.TextXAlignment.Left
-    stText.ZIndex = 12
-    stText.Parent = settingsToggleFrame
+    local settingsLayout = Instance.new("UIListLayout")
+    settingsLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    settingsLayout.Padding = UDim.new(0, 6)
+    settingsLayout.Parent = settingsScroll
 
-    local stTrack = Instance.new("Frame")
-    stTrack.Size = UDim2.new(0, 40, 0, 20)
-    stTrack.Position = UDim2.new(1, -44, 0.5, -10)
-    stTrack.BackgroundColor3 = Config.FPSCounterEnabled and Theme.Accent or Theme.Background
-    stTrack.BackgroundTransparency = 0
-    stTrack.ZIndex = 12
-    stTrack.Parent = settingsToggleFrame
-    createCorner(stTrack, 20)
-    local stTrackStroke = createStroke(stTrack, Config.FPSCounterEnabled and Theme.Accent or Theme.Stroke)
-
-    local stKnob = Instance.new("Frame")
-    stKnob.Size = UDim2.new(0, 14, 0, 14)
-    stKnob.Position = Config.FPSCounterEnabled and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7)
-    stKnob.BackgroundColor3 = Config.FPSCounterEnabled and Theme.Background or Theme.SubText
-    stKnob.ZIndex = 13
-    stKnob.Parent = stTrack
-    createCorner(stKnob, 14)
-
-    local stBtn = Instance.new("TextButton")
-    stBtn.Size = UDim2.new(1, 0, 1, 0)
-    stBtn.BackgroundTransparency = 1
-    stBtn.Text = ""
-    stBtn.ZIndex = 14
-    stBtn.Parent = settingsToggleFrame
-
-    stBtn.MouseButton1Click:Connect(function()
-        Config.FPSCounterEnabled = not Config.FPSCounterEnabled
-        topMiddleHud.Visible = Config.FPSCounterEnabled
-        stTrackStroke.Color = Config.FPSCounterEnabled and Theme.Accent or Theme.Stroke
-        animate(stTrack, {
-            BackgroundColor3 = Config.FPSCounterEnabled and Theme.Accent or Theme.Background,
-            BackgroundTransparency = 0
-        })
-        animate(stKnob, {
-            Position = Config.FPSCounterEnabled and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7),
-            BackgroundColor3 = Config.FPSCounterEnabled and Theme.Background or Theme.SubText
-        })
-        SaveConfig()
+    settingsLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+        settingsScroll.CanvasSize = UDim2.new(0, 0, 0, settingsLayout.AbsoluteContentSize.Y + 24)
     end)
 
-    -- Settings Item 2: Theme Selector
-    local themeFrame = Instance.new("Frame")
-    themeFrame.Size = UDim2.new(1, -24, 0, 42)
-    themeFrame.Position = UDim2.new(0, 12, 0, 68)
-    themeFrame.BackgroundColor3 = Theme.Surface
-    themeFrame.ZIndex = 11
-    themeFrame.Parent = settingsMenu
-    createCorner(themeFrame, 4)
-    createStroke(themeFrame, Theme.Stroke)
-    createPadding(themeFrame, 0, 0, 4, 12)
-    windowObj:RegisterElement(themeFrame)
+    -- Helper: create a base row frame parented into the scroll container.
+    local function makeSettingsRow()
+        local row = Instance.new("Frame")
+        row.Size = UDim2.new(1, 0, 0, 42)
+        row.BackgroundColor3 = Theme.Surface
+        row.ZIndex = 11
+        row.Parent = settingsScroll
+        createCorner(row, 4)
+        createStroke(row, Theme.Stroke)
+        createPadding(row, 0, 0, 4, 12)
+        windowObj:RegisterElement(row)
+        return row
+    end
 
-    local themeText = Instance.new("TextLabel")
-    themeText.Size = UDim2.new(0.38, 0, 1, 0)
-    themeText.BackgroundTransparency = 1
-    themeText.Text = "Theme"
-    themeText.TextColor3 = Theme.Text
-    themeText.Font = Enum.Font.GothamMedium
-    themeText.TextSize = 13
-    themeText.TextXAlignment = Enum.TextXAlignment.Left
-    themeText.ZIndex = 12
-    themeText.Parent = themeFrame
+    -- Helper: add a left-aligned label to a row.
+    local function makeRowLabel(row, text, widthScale)
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(widthScale or 0.55, 0, 1, 0)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = text
+        lbl.TextColor3 = Theme.Text
+        lbl.Font = Enum.Font.GothamMedium
+        lbl.TextSize = 13
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.ZIndex = 12
+        lbl.Parent = row
+        return lbl
+    end
 
-    local themeButton = Instance.new("TextButton")
-    themeButton.Size = UDim2.new(0, 150, 0, 26)
-    themeButton.Position = UDim2.new(1, -150, 0.5, -13)
-    themeButton.BackgroundColor3 = Theme.Background
-    themeButton.Text = Config.ThemeName .. "  v"
-    themeButton.TextColor3 = Theme.SubText
-    themeButton.Font = Enum.Font.Gotham
-    themeButton.TextSize = 11
-    themeButton.ZIndex = 14
-    themeButton.Parent = themeFrame
-    createCorner(themeButton, 4)
-    createStroke(themeButton, Theme.Stroke)
-    windowObj:RegisterElement(themeButton)
+    -- Settings Item 1: FPS Counter toggle.
+    do
+        local row = makeSettingsRow()
+        makeRowLabel(row, "FPS & Ping Counter")
 
-    local themeList = Instance.new("Frame")
-    themeList.Size = UDim2.new(0, 150, 0, 60)
-    themeList.Position = UDim2.new(1, -150, 1, 4)
-    themeList.BackgroundColor3 = Theme.SurfaceElevated
-    themeList.BackgroundTransparency = 0
-    themeList.Visible = false
-    themeList.ZIndex = 30
-    themeList.Parent = themeFrame
-    createCorner(themeList, 4)
-    createStroke(themeList, Theme.Stroke)
-    createPadding(themeList, 4, 4, 4, 4)
+        local stTrack = Instance.new("Frame")
+        stTrack.Size = UDim2.new(0, 40, 0, 20)
+        stTrack.Position = UDim2.new(1, -44, 0.5, -10)
+        stTrack.BackgroundColor3 = Config.FPSCounterEnabled and Theme.Accent or Theme.Background
+        stTrack.BackgroundTransparency = 0
+        stTrack.ZIndex = 12
+        stTrack.Parent = row
+        createCorner(stTrack, 20)
+        local stTrackStroke = createStroke(stTrack, Config.FPSCounterEnabled and Theme.Accent or Theme.Stroke)
 
-    local themeLayout = Instance.new("UIListLayout")
-    themeLayout.Padding = UDim.new(0, 2)
-    themeLayout.SortOrder = Enum.SortOrder.LayoutOrder
-    themeLayout.Parent = themeList
+        local stKnob = Instance.new("Frame")
+        stKnob.Size = UDim2.new(0, 14, 0, 14)
+        stKnob.Position = Config.FPSCounterEnabled and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7)
+        stKnob.BackgroundColor3 = Config.FPSCounterEnabled and Theme.Background or Theme.SubText
+        stKnob.ZIndex = 13
+        stKnob.Parent = stTrack
+        createCorner(stKnob, 14)
 
-    for themeName, imageId in pairs(ThemeOptions) do
-        local option = Instance.new("TextButton")
-        option.Size = UDim2.new(1, 0, 0, 24)
-        option.BackgroundColor3 = Theme.SurfaceElevated
-        option.BackgroundTransparency = 0
-        option.Text = themeName
-        option.TextColor3 = Theme.Text
-        option.Font = Enum.Font.Gotham
-        option.TextSize = 11
-        option.ZIndex = 31
-        option.Parent = themeList
-        option.MouseButton1Click:Connect(function()
-            Config.ThemeName = themeName
-            Config.BackgroundImageId = imageId
-            updateTheme()
-            themeButton.Text = themeName .. "  v"
-            themeList.Visible = false
+        local stBtn = Instance.new("TextButton")
+        stBtn.Size = UDim2.new(1, 0, 1, 0)
+        stBtn.BackgroundTransparency = 1
+        stBtn.Text = ""
+        stBtn.ZIndex = 14
+        stBtn.Parent = row
+
+        stBtn.MouseButton1Click:Connect(function()
+            Config.FPSCounterEnabled = not Config.FPSCounterEnabled
+            topMiddleHud.Visible = Config.FPSCounterEnabled
+            stTrackStroke.Color = Config.FPSCounterEnabled and Theme.Accent or Theme.Stroke
+            animate(stTrack, {BackgroundColor3 = Config.FPSCounterEnabled and Theme.Accent or Theme.Background, BackgroundTransparency = 0})
+            animate(stKnob, {Position = Config.FPSCounterEnabled and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7), BackgroundColor3 = Config.FPSCounterEnabled and Theme.Background or Theme.SubText})
             SaveConfig()
         end)
     end
 
-    themeButton.MouseButton1Click:Connect(function()
-        themeList.Visible = not themeList.Visible
-    end)
+    -- Settings Item 2: Theme dropdown.
+    do
+        local row = makeSettingsRow()
+        makeRowLabel(row, "Theme", 0.38)
 
-    -- Settings Item 3: Menu Toggle Key
-    local settingsKeybindFrame = Instance.new("Frame")
-    settingsKeybindFrame.Size = UDim2.new(1, -24, 0, 42)
-    settingsKeybindFrame.Position = UDim2.new(0, 12, 0, 120)
-    settingsKeybindFrame.BackgroundColor3 = Theme.Surface
-    settingsKeybindFrame.ZIndex = 11
-    settingsKeybindFrame.Parent = settingsMenu
-    createCorner(settingsKeybindFrame, 4)
-    createStroke(settingsKeybindFrame, Theme.Stroke)
-    createPadding(settingsKeybindFrame, 0, 0, 4, 12)
-    windowObj:RegisterElement(settingsKeybindFrame)
+        local themeButton = Instance.new("TextButton")
+        themeButton.Size = UDim2.new(0, 150, 0, 26)
+        themeButton.Position = UDim2.new(1, -150, 0.5, -13)
+        themeButton.BackgroundColor3 = Theme.Background
+        themeButton.Text = Config.ThemeName .. "  v"
+        themeButton.TextColor3 = Theme.SubText
+        themeButton.Font = Enum.Font.Gotham
+        themeButton.TextSize = 11
+        themeButton.ZIndex = 14
+        themeButton.Parent = row
+        createCorner(themeButton, 4)
+        createStroke(themeButton, Theme.Stroke)
+        windowObj:RegisterElement(themeButton)
 
-    local skText = Instance.new("TextLabel")
-    skText.Size = UDim2.new(0.6, 0, 1, 0)
-    skText.BackgroundTransparency = 1
-    skText.Text = "Menu Toggle Key"
-    skText.TextColor3 = Theme.Text
-    skText.Font = Enum.Font.GothamMedium
-    skText.TextSize = 13
-    skText.TextXAlignment = Enum.TextXAlignment.Left
-    skText.ZIndex = 12
-    skText.Parent = settingsKeybindFrame
+        local themeList = Instance.new("Frame")
+        themeList.Size = UDim2.new(0, 150, 0, 60)
+        themeList.Position = UDim2.new(1, -150, 1, 4)
+        themeList.BackgroundColor3 = Theme.SurfaceElevated
+        themeList.BackgroundTransparency = 0
+        themeList.Visible = false
+        themeList.ZIndex = 30
+        themeList.Parent = row
+        createCorner(themeList, 4)
+        createStroke(themeList, Theme.Stroke)
+        createPadding(themeList, 4, 4, 4, 4)
 
-    local skBtn = Instance.new("TextButton")
-    skBtn.Size = UDim2.new(0, 65, 0, 24)
-    skBtn.Position = UDim2.new(1, -65, 0.5, -12)
-    skBtn.BackgroundColor3 = Theme.Background
-    skBtn.Text = currentToggleKey.Name
-    skBtn.TextColor3 = Theme.SubText
-    skBtn.Font = Enum.Font.Gotham
-    skBtn.TextSize = 11
-    skBtn.ZIndex = 12
-    skBtn.Parent = settingsKeybindFrame
-    createCorner(skBtn, 4)
-    createStroke(skBtn, Theme.Stroke)
-    windowObj:RegisterElement(skBtn)
+        local themeLayout = Instance.new("UIListLayout")
+        themeLayout.Padding = UDim.new(0, 2)
+        themeLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        themeLayout.Parent = themeList
 
-    local skBinding = false
-    skBtn.MouseButton1Click:Connect(function()
-        if skBinding then return end
-        skBinding = true
-        skBtn.Text = "..."
-        local connection
-        connection = UserInputService.InputBegan:Connect(function(input)
-            if input.UserInputType == Enum.UserInputType.Keyboard then
-                currentToggleKey = input.KeyCode
-                Config.ToggleKey = currentToggleKey.Name
-                skBtn.Text = currentToggleKey.Name
-                skBinding = false
+        for themeName, imageId in pairs(ThemeOptions) do
+            local option = Instance.new("TextButton")
+            option.Size = UDim2.new(1, 0, 0, 24)
+            option.BackgroundColor3 = Theme.SurfaceElevated
+            option.BackgroundTransparency = 0
+            option.Text = themeName
+            option.TextColor3 = Theme.Text
+            option.Font = Enum.Font.Gotham
+            option.TextSize = 11
+            option.ZIndex = 31
+            option.Parent = themeList
+            option.MouseButton1Click:Connect(function()
+                Config.ThemeName = themeName
+                Config.BackgroundImageId = imageId
+                updateTheme()
+                themeButton.Text = themeName .. "  v"
+                themeList.Visible = false
                 SaveConfig()
-                connection:Disconnect()
-            end
-        end)
-    end)
+            end)
+        end
 
-    -- Close Settings Button
+        themeButton.MouseButton1Click:Connect(function()
+            themeList.Visible = not themeList.Visible
+        end)
+    end
+
+    -- Settings Item 3: Menu toggle key.
+    do
+        local row = makeSettingsRow()
+        makeRowLabel(row, "Menu Toggle Key")
+
+        local skBtn = Instance.new("TextButton")
+        skBtn.Size = UDim2.new(0, 65, 0, 24)
+        skBtn.Position = UDim2.new(1, -65, 0.5, -12)
+        skBtn.BackgroundColor3 = Theme.Background
+        skBtn.Text = currentToggleKey.Name
+        skBtn.TextColor3 = Theme.SubText
+        skBtn.Font = Enum.Font.Gotham
+        skBtn.TextSize = 11
+        skBtn.ZIndex = 12
+        skBtn.Parent = row
+        createCorner(skBtn, 4)
+        createStroke(skBtn, Theme.Stroke)
+        windowObj:RegisterElement(skBtn)
+
+        local skBinding = false
+        skBtn.MouseButton1Click:Connect(function()
+            if skBinding then return end
+            skBinding = true
+            skBtn.Text = "..."
+            local connection
+            connection = UserInputService.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.Keyboard then
+                    currentToggleKey = input.KeyCode
+                    Config.ToggleKey = currentToggleKey.Name
+                    skBtn.Text = currentToggleKey.Name
+                    skBinding = false
+                    SaveConfig()
+                    connection:Disconnect()
+                end
+            end)
+        end)
+    end
+
+    -- Close Settings Button — always pinned to the bottom of settingsMenu.
     local closeSettingsBtn = Instance.new("TextButton")
     closeSettingsBtn.Size = UDim2.new(0, 100, 0, 30)
-    closeSettingsBtn.Position = UDim2.new(0.5, -50, 1, -45)
+    closeSettingsBtn.Position = UDim2.new(0.5, -50, 1, -40)
     closeSettingsBtn.BackgroundColor3 = Theme.Surface
     closeSettingsBtn.Text = "Back"
     closeSettingsBtn.TextColor3 = Theme.Accent
@@ -679,6 +673,205 @@ function Library:CreateWindow(config)
     closeSettingsBtn.MouseButton1Click:Connect(function()
         settingsMenu.Visible = false
     end)
+
+    -- Exposed API: add a toggle row to the settings menu.
+    function windowObj:AddSettingToggle(label, defaultState, callback)
+        callback = callback or function() end
+        local state = defaultState or false
+        local row = makeSettingsRow()
+        makeRowLabel(row, label)
+
+        local track = Instance.new("Frame")
+        track.Size = UDim2.new(0, 40, 0, 20)
+        track.Position = UDim2.new(1, -44, 0.5, -10)
+        track.BackgroundColor3 = state and Theme.Accent or Theme.Background
+        track.BackgroundTransparency = 0
+        track.ZIndex = 12
+        track.Parent = row
+        createCorner(track, 20)
+        local trackStroke = createStroke(track, state and Theme.Accent or Theme.Stroke)
+
+        local knob = Instance.new("Frame")
+        knob.Size = UDim2.new(0, 14, 0, 14)
+        knob.Position = state and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7)
+        knob.BackgroundColor3 = state and Theme.Background or Theme.SubText
+        knob.ZIndex = 13
+        knob.Parent = track
+        createCorner(knob, 14)
+
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1, 0, 1, 0)
+        btn.BackgroundTransparency = 1
+        btn.Text = ""
+        btn.ZIndex = 14
+        btn.Parent = row
+
+        btn.MouseButton1Click:Connect(function()
+            state = not state
+            trackStroke.Color = state and Theme.Accent or Theme.Stroke
+            animate(track, {BackgroundColor3 = state and Theme.Accent or Theme.Background, BackgroundTransparency = 0})
+            animate(knob, {Position = state and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7), BackgroundColor3 = state and Theme.Background or Theme.SubText})
+            task.spawn(callback, state)
+        end)
+    end
+
+    -- Exposed API: add a button row to the settings menu.
+    function windowObj:AddSettingButton(label, buttonText, callback)
+        callback = callback or function() end
+        buttonText = buttonText or "Run"
+        local row = makeSettingsRow()
+        makeRowLabel(row, label)
+
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(0, 110, 0, 24)
+        btn.Position = UDim2.new(1, -110, 0.5, -12)
+        btn.BackgroundColor3 = Theme.SurfaceElevated
+        btn.Text = buttonText
+        btn.TextColor3 = Theme.Accent
+        btn.Font = Enum.Font.GothamMedium
+        btn.TextSize = 11
+        btn.ZIndex = 12
+        btn.Parent = row
+        createCorner(btn, 4)
+        createStroke(btn, Theme.Stroke)
+        windowObj:RegisterElement(btn)
+
+        btn.MouseEnter:Connect(function() animate(btn, {BackgroundColor3 = Theme.Stroke, BackgroundTransparency = 0}) end)
+        btn.MouseLeave:Connect(function() animate(btn, {BackgroundColor3 = Theme.SurfaceElevated, BackgroundTransparency = windowObj:GetElementTransparency()}) end)
+        btn.MouseButton1Click:Connect(function() task.spawn(callback) end)
+    end
+
+    -- Exposed API: add a dropdown row to the settings menu.
+    function windowObj:AddSettingDropdown(label, options, defaultOption, callback)
+        callback = callback or function() end
+        options = options or {}
+        local selected = defaultOption or options[1] or ""
+        local isOpen = false
+        local row = makeSettingsRow()
+        makeRowLabel(row, label, 0.4)
+
+        local pillWidth = 160
+        local pill = Instance.new("TextButton")
+        pill.Size = UDim2.new(0, pillWidth, 0, 26)
+        pill.Position = UDim2.new(1, -pillWidth, 0.5, -13)
+        pill.BackgroundColor3 = Theme.Background
+        pill.Text = ""
+        pill.ZIndex = 12
+        pill.Parent = row
+        createCorner(pill, 4)
+        createStroke(pill, Theme.Stroke)
+        windowObj:RegisterElement(pill)
+
+        local pillLbl = Instance.new("TextLabel")
+        pillLbl.Size = UDim2.new(1, -28, 1, 0)
+        pillLbl.Position = UDim2.new(0, 10, 0, 0)
+        pillLbl.BackgroundTransparency = 1
+        pillLbl.Text = selected
+        pillLbl.TextColor3 = Theme.SubText
+        pillLbl.Font = Enum.Font.Gotham
+        pillLbl.TextSize = 11
+        pillLbl.TextXAlignment = Enum.TextXAlignment.Left
+        pillLbl.ZIndex = 13
+        pillLbl.Parent = pill
+
+        local chev = Instance.new("TextLabel")
+        chev.Size = UDim2.new(0, 18, 0, 18)
+        chev.Position = UDim2.new(1, -22, 0.5, -9)
+        chev.BackgroundTransparency = 1
+        chev.Text = "v"
+        chev.TextColor3 = Theme.SubText
+        chev.Font = Enum.Font.GothamBold
+        chev.TextSize = 9
+        chev.ZIndex = 13
+        chev.Parent = pill
+
+        local itemH, listPad = 28, 6
+        local listH = math.max(#options, 1) * itemH + listPad * 2
+
+        local listPanel = Instance.new("Frame")
+        listPanel.Size = UDim2.new(0, pillWidth, 0, listH)
+        listPanel.Position = UDim2.new(1, -pillWidth, 1, 6)
+        listPanel.BackgroundColor3 = Theme.SurfaceElevated
+        listPanel.BackgroundTransparency = 0
+        listPanel.Visible = false
+        listPanel.ZIndex = 60
+        listPanel.Parent = row
+        createCorner(listPanel, 6)
+        createStroke(listPanel, Theme.Stroke)
+        createPadding(listPanel, listPad, listPad, listPad, listPad)
+
+        local listLayout = Instance.new("UIListLayout")
+        listLayout.Padding = UDim.new(0, 2)
+        listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+        listLayout.Parent = listPanel
+
+        local optBtns = {}
+
+        local function setSelected(val)
+            selected = val
+            pillLbl.Text = val
+            for _, b in ipairs(optBtns) do
+                local active = b.Text == val
+                b.TextColor3 = active and Theme.Accent or Theme.Text
+                animate(b, {BackgroundColor3 = active and Theme.Surface or Theme.SurfaceElevated, BackgroundTransparency = active and 0 or 1}, 0.15)
+            end
+        end
+
+        local function closeList()
+            isOpen = false
+            listPanel.Visible = false
+            animate(chev, {TextColor3 = Theme.SubText}, 0.15)
+        end
+
+        local function openList()
+            isOpen = true
+            listPanel.Visible = true
+            animate(chev, {TextColor3 = Theme.Accent}, 0.15)
+        end
+
+        for _, optName in ipairs(options) do
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, 0, 0, itemH)
+            btn.BackgroundColor3 = (optName == selected) and Theme.Surface or Theme.SurfaceElevated
+            btn.BackgroundTransparency = (optName == selected) and 0 or 1
+            btn.Text = optName
+            btn.TextColor3 = (optName == selected) and Theme.Accent or Theme.Text
+            btn.Font = Enum.Font.GothamMedium
+            btn.TextSize = 11
+            btn.ZIndex = 61
+            btn.Parent = listPanel
+            createCorner(btn, 4)
+            table.insert(optBtns, btn)
+
+            btn.MouseEnter:Connect(function()
+                if btn.Text ~= selected then animate(btn, {BackgroundTransparency = 0, BackgroundColor3 = Theme.Stroke}, 0.1) end
+            end)
+            btn.MouseLeave:Connect(function()
+                if btn.Text ~= selected then animate(btn, {BackgroundTransparency = 1, BackgroundColor3 = Theme.SurfaceElevated}, 0.1) end
+            end)
+            btn.MouseButton1Click:Connect(function()
+                setSelected(optName)
+                closeList()
+                task.spawn(callback, optName)
+            end)
+        end
+
+        pill.MouseEnter:Connect(function() animate(pill, {BackgroundColor3 = Theme.SurfaceElevated, BackgroundTransparency = 0}, 0.15) end)
+        pill.MouseLeave:Connect(function() animate(pill, {BackgroundColor3 = Theme.Background, BackgroundTransparency = windowObj:GetElementTransparency()}, 0.15) end)
+        pill.MouseButton1Click:Connect(function() if isOpen then closeList() else openList() end end)
+
+        UserInputService.InputBegan:Connect(function(input)
+            if input.UserInputType ~= Enum.UserInputType.MouseButton1 or not isOpen then return end
+            local mPos = UserInputService:GetMouseLocation()
+            local pA, pS = pill.AbsolutePosition, pill.AbsoluteSize
+            local lA, lS = listPanel.AbsolutePosition, listPanel.AbsoluteSize
+            local inPill = mPos.X >= pA.X and mPos.X <= pA.X + pS.X and mPos.Y >= pA.Y and mPos.Y <= pA.Y + pS.Y
+            local inList = mPos.X >= lA.X and mPos.X <= lA.X + lS.X and mPos.Y >= lA.Y and mPos.Y <= lA.Y + lS.Y
+            if not inPill and not inList then closeList() end
+        end)
+
+        return { SetSelected = function(_, v) setSelected(v) end, GetSelected = function() return selected end }
+    end
 
     -- 4. Bottom Status Bar
     local bottomBar = Instance.new("Frame")
