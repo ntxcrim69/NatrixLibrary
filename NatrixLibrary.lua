@@ -64,13 +64,13 @@ Config.BackgroundImageId = ThemeOptions[Config.ThemeName]
 
 -- Design System Constants
 local Theme = {
-    Background = Color3.fromRGB(5, 5, 5),         -- Pitch Black (#050505)
-    Surface = Color3.fromRGB(12, 12, 12),         -- Deep gray for panels
+    Background = Color3.fromRGB(5, 5, 5),
+    Surface = Color3.fromRGB(12, 12, 12),
     SurfaceElevated = Color3.fromRGB(18, 18, 18),
-    Stroke = Color3.fromRGB(45, 45, 45),          -- Crisp contrast border
-    Accent = Color3.fromRGB(255, 255, 255),       -- Pure White
-    Text = Color3.fromRGB(255, 255, 255),         -- Pure White
-    SubText = Color3.fromRGB(160, 160, 160),      -- Light gray for inactive text
+    Stroke = Color3.fromRGB(45, 45, 45),
+    Accent = Color3.fromRGB(255, 255, 255),
+    Text = Color3.fromRGB(255, 255, 255),
+    SubText = Color3.fromRGB(160, 160, 160),
     Danger = Color3.fromRGB(255, 55, 55)
 }
 
@@ -111,10 +111,10 @@ end
 -- External Image Fetcher with Roblox Asset ID Fallback
 local imageCache = {}
 local function FetchExternalImage(url, fileName, fallbackAssetId)
-    if imageCache[fileName] and imageCache[fileName] ~= "" then 
-        return imageCache[fileName] 
+    if imageCache[fileName] and imageCache[fileName] ~= "" then
+        return imageCache[fileName]
     end
-    
+
     local success, asset = pcall(function()
         if isfile and writefile and getcustomasset then
             if isfile(fileName) and readfile then
@@ -123,7 +123,7 @@ local function FetchExternalImage(url, fileName, fallbackAssetId)
                     if delfile then pcall(delfile, fileName) end
                 end
             end
-            
+
             if not isfile(fileName) then
                 local imgData = game:HttpGet(url)
                 if imgData and #imgData > 0 and not imgData:find("404") and not imgData:find("400") then
@@ -136,7 +136,7 @@ local function FetchExternalImage(url, fileName, fallbackAssetId)
         end
         return ""
     end)
-    
+
     local result = (success and asset and asset ~= "") and asset or (fallbackAssetId or "")
     if result ~= "" then
         imageCache[fileName] = result
@@ -152,7 +152,7 @@ local function createStatusTag(parent, iconUrl, fileName, labelText, xOffset, wi
     icon.Size = UDim2.new(0, 16, 0, 16)
     icon.Position = UDim2.new(0, xOffset + 12, 0.5, -8)
     icon.BackgroundTransparency = 1
-    
+
     local loadedImg = FetchExternalImage(iconUrl, fileName, fallbackAssetId)
     icon.Image = (loadedImg ~= "") and loadedImg or (fallbackAssetId or "")
     icon.ZIndex = baseZIndex + 1
@@ -183,8 +183,8 @@ function Library:CreateWindow(config)
     screenGui.Name = "NatrixUI_" .. math.random(10000, 99999)
     screenGui.ResetOnSpawn = false
     screenGui.IgnoreGuiInset = true
-    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global 
-    
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
+
     local parentObj = (gethui and gethui()) or (syn and syn.protect_gui and CoreGui) or CoreGui
     pcall(function() screenGui.Parent = parentObj end)
     if not screenGui.Parent then
@@ -224,9 +224,26 @@ function Library:CreateWindow(config)
 
     local currentToggleKey = Enum.KeyCode[Config.ToggleKey] or Enum.KeyCode.RightShift
 
+    -- Toggle visibility with fade in/out animation.
     UserInputService.InputBegan:Connect(function(input, gameProcessed)
         if input.KeyCode == currentToggleKey then
-            outerContainer.Visible = not outerContainer.Visible
+            if outerContainer.Visible then
+                if mainApp and mainApp.Visible then
+                    local tweenOut = TweenService:Create(mainApp, TweenInfo.new(0.25, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {GroupTransparency = 1})
+                    tweenOut:Play()
+                    tweenOut.Completed:Connect(function()
+                        outerContainer.Visible = false
+                    end)
+                else
+                    outerContainer.Visible = false
+                end
+            else
+                outerContainer.Visible = true
+                if mainApp and mainApp.Visible then
+                    mainApp.GroupTransparency = 1
+                    TweenService:Create(mainApp, TweenInfo.new(0.4, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {GroupTransparency = 0}):Play()
+                end
+            end
         end
     end)
 
@@ -242,29 +259,51 @@ function Library:CreateWindow(config)
     createCorner(topMiddleHud, 4)
     createStroke(topMiddleHud, Theme.Stroke)
 
+    -- Smooth HUD drag using exponential lerp.
     local hudDragging, hudDragInput, hudDragStart, hudStartPos
+    local hudDragTargetX, hudDragTargetY = 0, 0
+
     topMiddleHud.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             hudDragging = true
             hudDragStart = input.Position
             hudStartPos = topMiddleHud.AbsolutePosition
-            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then hudDragging = false end end)
+            hudDragTargetX = hudStartPos.X
+            hudDragTargetY = hudStartPos.Y
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    hudDragging = false
+                end
+            end)
         end
     end)
     topMiddleHud.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then hudDragInput = input end
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            hudDragInput = input
+        end
     end)
     UserInputService.InputChanged:Connect(function(input)
         if input == hudDragInput and hudDragging then
             local delta = input.Position - hudDragStart
-            local newX = hudStartPos.X + delta.X
-            local newY = hudStartPos.Y + delta.Y
-            topMiddleHud.Position = UDim2.new(0, newX, 0, newY)
+            hudDragTargetX = hudStartPos.X + delta.X
+            hudDragTargetY = hudStartPos.Y + delta.Y
+        end
+    end)
+
+    -- Lerp HUD toward drag target each frame.
+    RunService.RenderStepped:Connect(function(dt)
+        if hudDragging and hudStartPos then
+            local cur = topMiddleHud.AbsolutePosition
+            local lf = 1 - math.exp(-25 * dt)
+            topMiddleHud.Position = UDim2.new(
+                0, cur.X + (hudDragTargetX - cur.X) * lf,
+                0, cur.Y + (hudDragTargetY - cur.Y) * lf
+            )
         end
     end)
 
     local hudFps = createStatusTag(topMiddleHud, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/speed.png", "FPS_icon.png", "FPS", 0, 115, "rbxassetid://10747373176")
-    
+
     local hudDivider = Instance.new("Frame")
     hudDivider.Size = UDim2.new(0, 1, 0.6, 0)
     hudDivider.Position = UDim2.new(0.5, 0, 0.2, 0)
@@ -275,11 +314,12 @@ function Library:CreateWindow(config)
 
     local hudPing = createStatusTag(topMiddleHud, "https://raw.githubusercontent.com/ntxcrim69/NatrixLibrary/main/network.png", "PING_icon.png", "PING", 115, 115, "rbxassetid://10734934585")
 
+    -- Start fully transparent so it can fade in.
     local mainApp = Instance.new("CanvasGroup")
     mainApp.Name = "MainApp"
     mainApp.Size = UDim2.new(1, 0, 1, 0)
     mainApp.BackgroundTransparency = 1
-    mainApp.GroupTransparency = 0
+    mainApp.GroupTransparency = 1
     mainApp.Visible = not useKeySystem
     mainApp.ZIndex = 2
     mainApp.Parent = outerContainer
@@ -374,22 +414,48 @@ function Library:CreateWindow(config)
     createStroke(topBar, Theme.Stroke)
     addPanelBackground(topBar, 0)
 
+    -- Smooth main window drag using exponential lerp.
     local dragging, dragInput, dragStart, startPos
+    local mainDragTargetX, mainDragTargetY = 0, 0
+
     topBar.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = outerContainer.Position
-            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+            mainDragTargetX = startPos.X.Offset
+            mainDragTargetY = startPos.Y.Offset
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
         end
     end)
     topBar.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
     end)
     UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
-            outerContainer.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            mainDragTargetX = startPos.X.Offset + delta.X
+            mainDragTargetY = startPos.Y.Offset + delta.Y
+        end
+    end)
+
+    -- Lerp main window toward drag target each frame.
+    RunService.RenderStepped:Connect(function(dt)
+        if dragging and startPos then
+            local cur = outerContainer.Position
+            local lf = 1 - math.exp(-25 * dt)
+            outerContainer.Position = UDim2.new(
+                startPos.X.Scale,
+                cur.X.Offset + (mainDragTargetX - cur.X.Offset) * lf,
+                startPos.Y.Scale,
+                cur.Y.Offset + (mainDragTargetY - cur.Y.Offset) * lf
+            )
         end
     end)
 
@@ -430,8 +496,8 @@ function Library:CreateWindow(config)
 
     local contentArea = Instance.new("Frame")
     contentArea.Name = "ContentArea"
-    contentArea.Size = UDim2.new(1, 0, 1, -110) 
-    contentArea.Position = UDim2.new(0, 0, 0, 54) 
+    contentArea.Size = UDim2.new(1, 0, 1, -110)
+    contentArea.Position = UDim2.new(0, 0, 0, 54)
     contentArea.BackgroundColor3 = Theme.Background
     contentArea.BorderSizePixel = 0
     contentArea.ZIndex = 2
@@ -691,7 +757,7 @@ function Library:CreateWindow(config)
     createCorner(fpsWrapper, 4)
     createStroke(fpsWrapper, Theme.Stroke)
     windowObj:RegisterElement(fpsWrapper)
-    
+
     local pingWrapper = Instance.new("Frame")
     pingWrapper.Size = UDim2.new(0, 115, 1, 0)
     pingWrapper.Position = UDim2.new(0, 113, 0, 0)
@@ -730,12 +796,12 @@ function Library:CreateWindow(config)
     settingsIcon.ZIndex = 4
     settingsIcon.Parent = settingsBtn
 
-    settingsBtn.MouseEnter:Connect(function() 
-        animate(settingsBtn, {BackgroundColor3 = Theme.Accent, BackgroundTransparency = 0}) 
+    settingsBtn.MouseEnter:Connect(function()
+        animate(settingsBtn, {BackgroundColor3 = Theme.Accent, BackgroundTransparency = 0})
         animate(settingsIcon, {ImageColor3 = Theme.Background})
     end)
-    settingsBtn.MouseLeave:Connect(function() 
-        animate(settingsBtn, {BackgroundColor3 = Theme.Surface, BackgroundTransparency = windowObj:GetElementTransparency()}) 
+    settingsBtn.MouseLeave:Connect(function()
+        animate(settingsBtn, {BackgroundColor3 = Theme.Surface, BackgroundTransparency = windowObj:GetElementTransparency()})
         animate(settingsIcon, {ImageColor3 = Color3.fromRGB(255, 255, 255)})
     end)
     settingsBtn.MouseButton1Click:Connect(function()
@@ -743,6 +809,11 @@ function Library:CreateWindow(config)
     end)
 
     updateTheme()
+
+    -- Initial fade-in when menu first opens (non-key-system mode).
+    if not useKeySystem then
+        TweenService:Create(mainApp, TweenInfo.new(0.5, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {GroupTransparency = 0}):Play()
+    end
 
     local frames = 0
     local lastUpdate = os.clock()
@@ -764,7 +835,7 @@ function Library:CreateWindow(config)
             local success, result = pcall(function()
                 return LocalPlayer:GetNetworkPing()
             end)
-            
+
             if success and result then
                 pingVal = math.floor(result * 1000)
             else
@@ -772,7 +843,7 @@ function Library:CreateWindow(config)
                     pingVal = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
                 end)
             end
-            
+
             local currentPing = tostring(pingVal)
             pingLabel.Text = "PING: " .. currentPing
             hudPing.Text = "PING: " .. currentPing
@@ -792,20 +863,48 @@ function Library:CreateWindow(config)
         createCorner(keyModal, 4)
         createStroke(keyModal, Theme.Stroke)
 
+        -- Smooth key modal drag using exponential lerp.
         local kDragging, kDragInput, kDragStart, kStartPos
+        local kDragTargetX, kDragTargetY = 0, 0
+
         keyModal.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 then
                 kDragging = true
                 kDragStart = input.Position
                 kStartPos = outerContainer.Position
-                input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then kDragging = false end end)
+                kDragTargetX = kStartPos.X.Offset
+                kDragTargetY = kStartPos.Y.Offset
+                input.Changed:Connect(function()
+                    if input.UserInputState == Enum.UserInputState.End then
+                        kDragging = false
+                    end
+                end)
             end
         end)
-        keyModal.InputChanged:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseMovement then kDragInput = input end end)
+        keyModal.InputChanged:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseMovement then
+                kDragInput = input
+            end
+        end)
         UserInputService.InputChanged:Connect(function(input)
             if input == kDragInput and kDragging then
                 local delta = input.Position - kDragStart
-                outerContainer.Position = UDim2.new(kStartPos.X.Scale, kStartPos.X.Offset + delta.X, kStartPos.Y.Scale, kStartPos.Y.Offset + delta.Y)
+                kDragTargetX = kStartPos.X.Offset + delta.X
+                kDragTargetY = kStartPos.Y.Offset + delta.Y
+            end
+        end)
+
+        -- Lerp key modal toward drag target each frame.
+        RunService.RenderStepped:Connect(function(dt)
+            if kDragging and kStartPos then
+                local cur = outerContainer.Position
+                local lf = 1 - math.exp(-25 * dt)
+                outerContainer.Position = UDim2.new(
+                    kStartPos.X.Scale,
+                    cur.X.Offset + (kDragTargetX - cur.X.Offset) * lf,
+                    kStartPos.Y.Scale,
+                    cur.Y.Offset + (kDragTargetY - cur.Y.Offset) * lf
+                )
             end
         end)
 
@@ -817,10 +916,12 @@ function Library:CreateWindow(config)
         discordBtn.Image = (fetchedDiscord ~= "") and fetchedDiscord or "rbxassetid://10709768652"
         discordBtn.ZIndex = 101
         discordBtn.Parent = keyModal
-        
+
         discordBtn.MouseEnter:Connect(function() animate(discordBtn, {Size = UDim2.new(0, 26, 0, 26), Position = UDim2.new(1, -37, 0, 11)}) end)
         discordBtn.MouseLeave:Connect(function() animate(discordBtn, {Size = UDim2.new(0, 24, 0, 24), Position = UDim2.new(1, -36, 0, 12)}) end)
-        discordBtn.MouseButton1Click:Connect(function() if setclipboard and keySettings.Discord then setclipboard(keySettings.Discord) end end)
+        discordBtn.MouseButton1Click:Connect(function()
+            if setclipboard and keySettings.Discord then setclipboard(keySettings.Discord) end
+        end)
 
         local logoLabel = Instance.new("ImageLabel")
         logoLabel.Size = UDim2.new(0, 100, 0, 100)
@@ -1233,7 +1334,6 @@ function Tab:CreateDropdown(label, options, defaultOption, callback)
     local isOpen = false
     local window = self.Window
 
-    -- Outer row frame — same 42 px height as Toggle / Button
     local dropFrame = Instance.new("Frame")
     dropFrame.Name = label .. "_Dropdown"
     dropFrame.Size = UDim2.new(1, 0, 0, 42)
@@ -1246,7 +1346,6 @@ function Tab:CreateDropdown(label, options, defaultOption, callback)
     createPadding(dropFrame, 0, 0, 4, 12)
     window:RegisterElement(dropFrame)
 
-    -- Label on the left
     local textLabel = Instance.new("TextLabel")
     textLabel.Size = UDim2.new(0.4, 0, 1, 0)
     textLabel.BackgroundTransparency = 1
@@ -1258,22 +1357,19 @@ function Tab:CreateDropdown(label, options, defaultOption, callback)
     textLabel.ZIndex = 6
     textLabel.Parent = dropFrame
 
-    -- ── Selected-value pill (right side) ──────────────────────────────────
-    -- Container button — invisible background, handles clicks
     local selectedBtn = Instance.new("TextButton")
     selectedBtn.Size = UDim2.new(0, 154, 0, 28)
     selectedBtn.Position = UDim2.new(1, -158, 0.5, -14)
     selectedBtn.BackgroundColor3 = Theme.Background
-    selectedBtn.Text = ""                          -- text drawn by children
+    selectedBtn.Text = ""
     selectedBtn.ZIndex = 6
     selectedBtn.Parent = dropFrame
     createCorner(selectedBtn, 6)
     createStroke(selectedBtn, Theme.Stroke)
     window:RegisterElement(selectedBtn)
 
-    -- Selected value — left-aligned inside the pill
     local valueLabel = Instance.new("TextLabel")
-    valueLabel.Size = UDim2.new(1, -28, 1, 0)     -- leave room for arrow
+    valueLabel.Size = UDim2.new(1, -28, 1, 0)
     valueLabel.Position = UDim2.new(0, 10, 0, 0)
     valueLabel.BackgroundTransparency = 1
     valueLabel.Text = selected
@@ -1284,7 +1380,6 @@ function Tab:CreateDropdown(label, options, defaultOption, callback)
     valueLabel.ZIndex = 7
     valueLabel.Parent = selectedBtn
 
-    -- Arrow — right-aligned, ">" rotated 90 so it points down
     local arrowLabel = Instance.new("TextLabel")
     arrowLabel.Size = UDim2.new(0, 20, 0, 20)
     arrowLabel.Position = UDim2.new(1, -24, 0.5, -10)
@@ -1300,11 +1395,10 @@ function Tab:CreateDropdown(label, options, defaultOption, callback)
     arrowLabel.ZIndex = 7
     arrowLabel.Parent = selectedBtn
 
-    -- ── Drop-down list panel ───────────────────────────────────────────────
     local LIST_W    = 154
     local ITEM_H    = 30
     local ITEM_GAP  = 3
-    local LIST_PAD  = 6   -- top + bottom inner padding
+    local LIST_PAD  = 6
     local fullHeight = #options * ITEM_H + math.max(0, #options - 1) * ITEM_GAP + LIST_PAD
 
     local listFrame = Instance.new("Frame")
@@ -1320,7 +1414,6 @@ function Tab:CreateDropdown(label, options, defaultOption, callback)
     createCorner(listFrame, 6)
     createStroke(listFrame, Theme.Stroke)
 
-    -- Inner padding frame so ClipsDescendants + corner work correctly
     local listInner = Instance.new("Frame")
     listInner.Size = UDim2.new(1, -8, 1, -LIST_PAD)
     listInner.Position = UDim2.new(0, 4, 0, LIST_PAD / 2)
@@ -1333,7 +1426,6 @@ function Tab:CreateDropdown(label, options, defaultOption, callback)
     listLayout.SortOrder = Enum.SortOrder.LayoutOrder
     listLayout.Parent = listInner
 
-    -- ── Option rows ────────────────────────────────────────────────────────
     local optionBtns = {}
 
     local function refreshColors()
@@ -1389,7 +1481,6 @@ function Tab:CreateDropdown(label, options, defaultOption, callback)
             valueLabel.Text = selected
             refreshColors()
 
-            -- Rotate arrow back and close
             animate(listFrame, {Size = UDim2.new(0, LIST_W, 0, 0)}, 0.2)
             task.delay(0.2, function() listFrame.Visible = false end)
             isOpen = false
@@ -1398,7 +1489,6 @@ function Tab:CreateDropdown(label, options, defaultOption, callback)
         end)
     end
 
-    -- ── Toggle open / close ────────────────────────────────────────────────
     local function openList()
         listFrame.Size = UDim2.new(0, LIST_W, 0, 0)
         listFrame.Visible = true
@@ -1417,7 +1507,6 @@ function Tab:CreateDropdown(label, options, defaultOption, callback)
         if isOpen then openList() else closeList() end
     end)
 
-    -- ── Public API ─────────────────────────────────────────────────────────
     local dropObj = {}
 
     function dropObj:GetValue()
